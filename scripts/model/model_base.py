@@ -22,7 +22,7 @@ class Model():
         du = self.dt * (g - P @ np.clip(a, a_min=0, a_max=None))
         return u + du
 
-    def step(self, g):
+    def step(self, t, g):
         self.a = self.step_a(self.a, self.u, self.G, self.mu)
         self.u = self.step_u(self.a, self.u, g, self.P)
         return self.a, self.u
@@ -41,11 +41,11 @@ class Model():
             if verbose:
                 print(f'[{int(np.round(i/len(t)*100))}%] --- '
                       f'{_t:.2f}/{T} hours simulated', end='       \r')
-            res[i] = self.step(g(_t))
+            res[i] = self.step(_t, g(_t))
         if verbose: print()
         return t, res
 
-class PiLearnModel(Model):
+class PiLearnModelBase(Model):
     def __init__(self, *args, eta=1e-3, P_est=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.P_est = np.zeros((self.dim, self.dim)) \
@@ -53,29 +53,16 @@ class PiLearnModel(Model):
         self.eta = eta
         self.u_est = self.u0.copy()
 
-    def step_P_est(self, a, u_est, u, g, P, P_est):
-        u2 = self.step_u(a, u, g, P)
-        u2_est = self.step_u(a, u_est, g, P_est)
-        u_dot = (u2 - u) / self.dt
-        u_dot_est = (u2_est - u_est) / self.dt
-        delta_u = u_dot - u_dot_est
-        # delta_u = u - u_est
-        # print(delta_u)
-        # print(a)
-        dP = - self.dt * np.outer(delta_u, np.clip(a, a_min=0, a_max=None)) * self.eta
-        # print(dP)
-        # print(P_est)
-        # input()
-        return P_est + dP
+    def step_P_est(self):
+        return P_est
 
-    def step(self, g):
+    def step(self, t, g):
         self.a = self.step_a(self.a, self.u_est, self.G, self.mu)
         self.u = self.step_u(self.a, self.u, g, self.P)
         self.u_est = self.step_u(self.a, self.u_est, g, self.P_est)
-        self.P_est = self.step_P_est(self.a, self.u_est, self.u, g,
-                                     self.P, self.P_est)
+        self.P_est = self.step_P_est()
         if hasattr(self, 'err'):
-            self.err.append(np.sum(self.P_est - self.P)**2)
+            self.err.append(np.mean((self.P_est - self.P)**2))
         return self.a, self.u, self.u_est
 
     def simulate(self, *args, **kwargs):
@@ -83,3 +70,4 @@ class PiLearnModel(Model):
         t, res = self._simulate(*args, _nrecvars=3, **kwargs)
         a, u, u_est = res[:,0], res[:,1], res[:,2]
         return t, a, u, u_est
+
