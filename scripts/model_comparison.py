@@ -1,9 +1,15 @@
+from pathlib import Path
 import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.patches import Rectangle
 import multiprocessing as mp
-from model import Model, PiLearnModelU, PiLearnModelDU, PiLearnModelUdelay, \
-                  PiLearnModelUdelayMu, PiLearnModelO
+from model import Model
+from setup.models import get_base_pars
+from setup.model_comparison \
+        import get_base_model_comparison, get_delay_comparison, \
+               get_noise_comparison
+
+path = Path('figures')
 
 def run(arg):
     name, (cls, kwargs) = arg
@@ -27,7 +33,7 @@ def run(arg):
         Pe = [P]
     return t, a, err, errm, name, Pe
 
-def plot(res, models, T):
+def plot(res, models, T, title):
     fig, axs = plt.subplots(len(models), 3, sharex='col', sharey='col',
                             figsize=(10,7), width_ratios=[4,4,1])
     for t, a, err, errm, name, Pe in res:
@@ -69,8 +75,7 @@ def plot(res, models, T):
     axs[0,1].set_axis_off()
     axs[0,1].set_yscale('log')
     axs[1,2].set_title(r'MSE of $\Pi_e$')
-    fig.suptitle(r'Comparison of different learning rules for $\Pi_e$',
-                 fontsize='large')
+    fig.suptitle(title, fontsize='large')
     fig.tight_layout()
     handles, labels = axs[0,0].get_legend_handles_labels()
     handles2, labels2 = axs[1,1].get_legend_handles_labels()
@@ -82,41 +87,21 @@ def plot(res, models, T):
     return fig, axs
 
 if __name__ == '__main__':
-    N = 3
-    P = np.zeros((N, N))
-    P[0,0] = 4
-    P[1,1] = 4
-    P[2,:] = [-1, -1, 3]
-    G = np.zeros((N, N))
-    G[0,:] = [2, 3, 3]
-    G[1,:] = [3, 4, 3]
-    G[2,:] = [3, 3, 2]
-    G *= 4
-    mu = np.array([0, 20, 0])
-    g = lambda t : np.array([4, 0, 0])
+    P, G, mu, g = get_base_pars()
+
+    models, name, title = get_base_model_comparison()
+    models, name, title = get_delay_comparison()
+    # models, name, title = get_noise_comparison()
 
     sd = 1
-    T = 500
-    n = 10
+    T = 5000
+    n = 100
     dt = 1e-1
 
-    models = {'basic model': (Model, {}),
-             r'$\Delta \vec{u} = \dot{\vec{u}} - \dot{\vec{u}}_e$':
-                    (PiLearnModelDU, {}),
-             r'$\Delta \vec{u} = \vec{u} - \vec{u}_e$':
-                    (PiLearnModelU, {}),
-             r'delay learning with $\vec{u}_e$ updates':
-                    (PiLearnModelUdelay, {}),
-             r'delay learning with $\vec{u}_e$ updates, $\vec{u}$ '
-             r'clipped by $\mu$':
-                    (PiLearnModelUdelayMu, {}),
-             # r'smoothed observations learning with $\vec{o}$':
-                    # (PiLearnModelO, {}),
-              }
     with mp.Pool(4) as p:
         res = p.map(run, models.items())
 
-    fig, axs = plot(res, models, T)
-    fig.savefig('figures/model_comparison.png')
+    fig, axs = plot(res, models, T, title)
+    fig.savefig(path / f'{name}.png')
     plt.show()
 

@@ -1,8 +1,10 @@
 import numpy as np
 from matplotlib import pyplot as plt
-from model import Model, PiLearnModelU, PiLearnModelDU, PiLearnModelUdelay
+from model import Model, PiLearnModelU, PiLearnModelDU, PiLearnModelUdelay, PiLearnModelUdelayProb
+from setup.models import get_base_pars
 
 if __name__ == '__main__':
+
     n = 3
     P = np.zeros((n, n))
     P[0,0] = 4
@@ -13,15 +15,32 @@ if __name__ == '__main__':
     G[1,:] = [3, 4, 3]
     G[2,:] = [3, 3, 2]
     G *= 4
+    G = np.eye(n)
     mu = np.array([0, 20, 0])
     g = lambda t : np.array([4, 0, 0])
 
-    P_est = P + np.random.randn(*P.shape)*1e-2
-    model = PiLearnModelUdelay(P, G, mu, P_est=P_est, delay=20)
-    model = PiLearnModelU(P, G, mu, P_est=P_est, dt=1e-1)
+    # P = np.array([[1.]])
+    # G = np.array([[1.]])
+    # mu = np.array([0.])
+    # g = lambda t : np.array([0.])
+    """
+    n = 2
+    mu = np.array([0, 0])
+    g = lambda t : np.array([0, 0])
+    G = np.zeros((n, n))
+    P = np.eye(n)
+    """
+    P, G, mu, g = get_base_pars()
+
+    P_est = P + np.random.randn(*P.shape)*1
+    # model = Model(P, G, mu)
+    # model = PiLearnModelUdelay(P, G, mu, P_est=P_est, delay=50, eta=1e-4, sigma_u=None)
+    model = PiLearnModelUdelayProb(P, G, mu, P_est=P_est, delay=25, sigma_u=.5)
+    # model = PiLearnModelU(P, G, mu, P_est=P_est, dt=1e-1)
     print(model.P)
     print(np.round(model.P_est, decimals=3))
-    t, a, u, u_est = model.simulate(g, T=1000)
+    t, a, u, u_est = model.simulate(g, T=300)
+    print(np.round(model.M, decimals=3))
     print(np.round(model.P_est, decimals=3))
     # model = Model(P, G, mu)
     # t, a, u = model.simulate(g, T=100)

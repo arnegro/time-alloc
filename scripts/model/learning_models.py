@@ -11,26 +11,30 @@ class PiLearnModelU(PiLearnModelBase):
 class PiLearnModelUdelay(PiLearnModelBase):
     def __init__(self, *args, delay=5, **kwargs):
         super().__init__(*args, **kwargs)
-        self.delay = 5
+        self.delay = delay
         self.A = np.zeros_like(self.a)
     
     def step_P_est(self):
+        return self.P_est
+
+    def update_P_est(self):
         delta_u = self.u - self.u_est
         dP = - np.outer(delta_u, self.A) * self.eta
         return self.P_est + dP
 
+    def update_step(self):
+        self.P_est = self.update_P_est()
+        self.u_est = self.u
+        self.A[:] = 0
+
     def step(self, t, g):
-        self.a = self.step_a(self.a, self.u_est, self.G, self.mu)
-        self.A += self.dt * np.clip(self.a, a_min=0, a_max=None)
-        self.u = self.step_u(self.a, self.u, g, self.P)
-        self.u_est = self.step_u(self.a, self.u_est, g, self.P_est)
         update = t // self.delay != (t+self.dt) // self.delay
+        # print(self.a, self.u)
+        super().step(t, g)
+        self.A += self.dt * np.clip(self.a, a_min=0, a_max=None)
         if update:
-            self.P_est = self.step_P_est()
-            self.u_est = self.u
-            self.A[:] = 0
-        if hasattr(self, 'err'):
-            self.err.append(np.mean((self.P_est - self.P)**2))
+            self.update_step()
+            # quit()
         return self.a, self.u, self.u_est
 
 class PiLearnModelDU(PiLearnModelBase):
@@ -52,7 +56,7 @@ class PiLearnModelDU(PiLearnModelBase):
         return self.a, self.u, self.u_est
 
 class PiLearnModelUdelayMu(PiLearnModelUdelay):
-    def step_P_est(self):
+    def update_P_est(self):
         delta_u = np.clip(self.u, a_min=self.mu, a_max=None) \
                 - np.clip(self.u_est, a_min=self.mu, a_max=None)
         dP = - np.outer(delta_u, self.A) * self.eta
@@ -81,3 +85,51 @@ class PiLearnModelO(PiLearnModelBase):
         delta_o = self.o - self.o_est
         dP = - np.outer(delta_o, self.A) * self.eta
         return self.P_est + dP
+
+class PiLearnModelUdelayProb(PiLearnModelUdelay):
+    def __init__(self, *args, sigma_u=1, U_inv=None, **kwargs):
+        super().__init__(*args, sigma_u=sigma_u, **kwargs)
+        n = self.u.shape[0]
+        self.M = np.zeros((n, n)) 
+        self.M = self.P_est.copy()
+        self.U_inv = np.eye(n) *1e-2 if U_inv is None else U_inv
+        # self.V = np.eye(n
+
+    def simulate(self, *args, u0=None, **kwargs):
+        self._previous_u = u0 if u0 is not None else self.u0.copy()
+        self._G = np.zeros_like(self.u)
+        return super().simulate(*args, u0=u0, **kwargs)
+
+    def step(self, t, g):
+        # g *= 0
+        self._G += self.dt * g
+        return super().step(t, g)
+
+    def update_P_est(self):
+        var = self.sigma_u**2 * self.delay
+        # print(var)
+        delta_u = self.u - self._previous_u
+        y = delta_u - self._G
+        x = - self.A
+        x = x[:,None]
+        y = y[:,None]
+        # print(x)
+        # print(y)
+        U_inv = self.U_inv + np.outer(x, x)# / var
+        # print(np.round(self.U_inv, decimals=3))
+        # print(np.round(U_inv, decimals=3))
+        # print(np.round(delta_u, decimals=3))
+        # print(np.round(self.A, decimals=3))
+        # print(np.round(self._G, decimals=3))
+        # print(np.round(self.M, decimals=3))
+        # M = np.linalg.inv(U_inv) @ (self.U_inv @ self.M.T
+                                  # - np.outer(self.A, delta_u - self._G) / var)
+        dM = np.outer(y - self.M @ x, x) @ np.linalg.inv(U_inv)
+        # M = M.T
+        # print(np.round(dM, decimals=3))
+        self.M += dM
+        # print(self.M)
+        # quit()
+        self.U_inv = U_inv
+        return self.P.copy()
+        return self.M.copy()

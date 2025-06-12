@@ -1,7 +1,7 @@
 import numpy as np
 
 class Model():
-    def __init__(self, P, G, mu, dt=1e-2, a0=None, u0=None):
+    def __init__(self, P, G, mu, dt=1e-2, a0=None, u0=None, sigma_u=None):
         self.P = P
         self.G = G
         self.mu = mu
@@ -11,6 +11,7 @@ class Model():
         self.a = self.a0.copy()
         self.u = self.u0.copy()
         self.dt = dt
+        self.sigma_u = sigma_u
         self._nrecvars = 2
 
     def step_a(self, a, u, G, mu):
@@ -18,8 +19,10 @@ class Model():
                       - G @ np.clip(a, a_min=0, a_max=None))
         return a + da
 
-    def step_u(self, a, u, g, P):
+    def step_u(self, a, u, g, P, sigma_u=None):
         du = self.dt * (g - P @ np.clip(a, a_min=0, a_max=None))
+        if sigma_u is not None:
+            du += np.sqrt(self.dt) * sigma_u * np.random.randn()
         return u + du
 
     def step(self, t, g):
@@ -33,8 +36,8 @@ class Model():
         return t, a, u
 
     def _simulate(self, g, T, a0=None, u0=None, verbose=True, _nrecvars=2):
-        self.a = a0 if a0 is not None else self.a0
-        self.u = u0 if u0 is not None else self.u0
+        self.a = a0 if a0 is not None else self.a0.copy()
+        self.u = u0 if u0 is not None else self.u0.copy()
         t = np.arange(0, T, self.dt)
         res = np.empty((len(t), _nrecvars, self.dim))
         for i, _t in enumerate(t):
@@ -58,8 +61,8 @@ class PiLearnModelBase(Model):
 
     def step(self, t, g):
         self.a = self.step_a(self.a, self.u_est, self.G, self.mu)
-        self.u = self.step_u(self.a, self.u, g, self.P)
-        self.u_est = self.step_u(self.a, self.u_est, g, self.P_est)
+        self.u = self.step_u(self.a, self.u, g, self.P, self.sigma_u)
+        self.u_est = self.step_u(self.a, self.u_est, g, self.P_est, None)
         self.P_est = self.step_P_est()
         if hasattr(self, 'err'):
             self.err.append(np.mean((self.P_est - self.P)**2))
