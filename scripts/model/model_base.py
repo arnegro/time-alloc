@@ -27,7 +27,7 @@ class Model():
 
     def step(self, t, g):
         self.a = self.step_a(self.a, self.u, self.G, self.mu)
-        self.u = self.step_u(self.a, self.u, g, self.P)
+        self.u = self.step_u(self.a, self.u, g, self.P, sigma_u=self.sigma_u)
         return self.a, self.u
 
     def simulate(self, *args, **kwargs):

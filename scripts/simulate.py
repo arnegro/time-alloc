@@ -5,31 +5,6 @@ from setup.models import get_base_pars
 
 if __name__ == '__main__':
 
-    n = 3
-    P = np.zeros((n, n))
-    P[0,0] = 4
-    P[1,1] = 4
-    P[2,:] = [-1, -1, 3]
-    G = np.zeros((n, n))
-    G[0,:] = [2, 3, 3]
-    G[1,:] = [3, 4, 3]
-    G[2,:] = [3, 3, 2]
-    G *= 4
-    G = np.eye(n)
-    mu = np.array([0, 20, 0])
-    g = lambda t : np.array([4, 0, 0])
-
-    # P = np.array([[1.]])
-    # G = np.array([[1.]])
-    # mu = np.array([0.])
-    # g = lambda t : np.array([0.])
-    """
-    n = 2
-    mu = np.array([0, 0])
-    g = lambda t : np.array([0, 0])
-    G = np.zeros((n, n))
-    P = np.eye(n)
-    """
     P, G, mu, g = get_base_pars()
 
     P_est = P + np.random.randn(*P.shape)*1

@@ -9,7 +9,7 @@ if __name__ == '__main__':
 
     # Data (1 data point)
     M = np.zeros((q, p))
-    U = np.eye(p)
+    U = np.eye(p)*1e2
     V = np.eye(q)
     Sigma = V  # likelihood noise = column covariance
     u = np.random.randn(q, 1)*0
@@ -37,7 +37,7 @@ if __name__ == '__main__':
             _A += dt * f(a)
             u_s.append(u[:,0].copy())
             a_s.append(a[:,0].copy())
-        for t in np.arange(0, 5, dt):
+        for t in np.arange(0, 25, dt):
             u += np.sqrt(dt) * np.random.randn() * .5
         u_s, a_s = np.array(u_s), np.array(a_s)
         # fig, (ax1, ax2) = plt.subplots(2, 1)
@@ -56,6 +56,12 @@ if __name__ == '__main__':
         # print('A', x)
         # print('u', y)
 
+        # print(x)
+        print(y)
+        print(u)
+        print(u_prev)
+        print(_G)
+
 
         # Transform: y = A * (-x) + noise => define x_tilde
         x_tilde = -x  # shape (p, 1)
@@ -67,6 +73,10 @@ if __name__ == '__main__':
         U_post = np.linalg.inv(U_inv + x_tilde @ x_tilde.T)  # shape (p, p)
 
         M_post = M + (y - M @ x_tilde).dot(x_tilde.T).dot(U_post)  # shape (q, p)
+        # print(np.linalg.inv(U_post))
+        # print(M)
+        # print(M_post)
+        input()
         # print(M_post)
         # quit()
         M = M_post

@@ -1,5 +1,5 @@
 from model import Model, PiLearnModelU, PiLearnModelDU, PiLearnModelUdelay, \
-                  PiLearnModelUdelayMu, PiLearnModelO
+                  PiLearnModelUdelayMu, PiLearnModelO, PiLearnModelUdelayProb
 
 _name = 'model_comparison'
 
@@ -7,19 +7,13 @@ def _get_base_model():
     return {'basic model': (Model, {})}
 
 def get_base_model_comparison():
-    models = {r'$\Delta \vec{u} = \dot{\vec{u}} - \dot{\vec{u}}_e$':
-                    (PiLearnModelDU, {}),
-              r'$\Delta \vec{u} = \vec{u} - \vec{u}_e$':
-                    (PiLearnModelU, {}),
-              r'delay learning with $\vec{u}_e$ updates':
-                    (PiLearnModelUdelay, {}),
-              r'delay learning with $\vec{u}_e$ updates, $\vec{u}$ '
-              r'clipped by $\mu$':
+    models = {r'Gradient descent': (PiLearnModelUdelay, {}),
+              r'Gradient descent, clipped by $\vec{\mu}$':
                     (PiLearnModelUdelayMu, {}),
-              # r'smoothed observations learning with $\vec{o}$':
-                    # (PiLearnModelO, {}),
+              r'Gradient descent, $\Delta t \to 0$': (PiLearnModelDU, {}),
+              r'Bayesian updates': (PiLearnModelUdelayProb, {'sigma_u':None})
               }
-    title = r'Comparison of different learning rules for $\Pi_e$'
+    title = r'Comparison of different learning rules for $\hat{\Pi}$'
     return _get_base_model() | models, _name, title
 
 def get_delay_comparison(delays=[5, 20, 50], model=PiLearnModelUdelay,
@@ -43,3 +37,42 @@ def get_noise_comparison(sigmas=[None, 1, 5, 10], model=PiLearnModelUdelay):
             r'learning of $\Pi_e$ with $\vec{u}_e$ updates'
     return models, _name + '_noise', title
 
+def compare_prob(sigma=3, delay=5, eta=1e-2):
+    models = _get_base_model()
+    kwargs = {'eta': eta, 'delay': delay, 'sigma_u': None}
+    models[r'delay learning with $\vec{u}_e$ updates'] = \
+                                            (PiLearnModelUdelay, kwargs)
+    models[r'bayesian delay learning with $\vec{u}_e$ updates'] = \
+                                            (PiLearnModelUdelayProb, kwargs)
+    kwargs = kwargs.copy()
+    kwargs['sigma_u'] = sigma
+    models[r'delay learning with $\vec{u}_e$ updates, '
+          rf'$\sigma_u = {sigma}$'] = \
+                                            (PiLearnModelUdelay, kwargs)
+    models[r'bayesian delay learning with $\vec{u}_e$ updates, '
+          rf'$\sigma_u = {sigma}$'] = \
+                                            (PiLearnModelUdelayProb, kwargs)
+    title = 'Comparison of gradient descent and bayesian ' \
+           f'linear regression learning ({eta=}, {delay=})'
+    return models, _name + '_prob', title
+
+def get_error_comparison(sigmas=[None, 1, 5], delays=[5, 15, 25, 50]):
+    models = {}
+    for s in sigmas:
+        for d in delays:
+            for m, model in [('grad. desc.', PiLearnModelUdelay),
+                             ('bayes.', PiLearnModelUdelayProb)]:
+                models[(s, d, m)] = (model, {'sigma_u': s})
+    title = 'Comparison of learning'
+    return models, 'error_comparison', title
+
+def get_action_comparison(sigmas=[None, 1, 5]):
+    models = {}
+    for s in sigmas:
+        for m, model in [('grad. desc.', PiLearnModelUdelay),
+                        (r'grad. desc. $\mu$', PiLearnModelUdelayMu),
+                         ('basic model', Model),
+                         ('bayes', PiLearnModelUdelayProb)]:
+            models[(s, m)] = (model, {'sigma_u': s})
+    title = 'comparison of statistics of actions during learning'
+    return models, 'action_comparison', title
