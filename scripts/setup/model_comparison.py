@@ -1,5 +1,7 @@
+import numpy as np
 from model import Model, PiLearnModelU, PiLearnModelDU, PiLearnModelUdelay, \
                   PiLearnModelUdelayMu, PiLearnModelO, PiLearnModelUdelayProb
+from setup.models import get_feedback_model_pars
 
 _name = 'model_comparison'
 
@@ -66,6 +68,18 @@ def get_error_comparison(sigmas=[None, 1, 5], delays=[5, 15, 25, 50]):
                 models[(s, d, m)] = (model, {'sigma_u': s, 'delay': d})
     title = 'Comparison of learning'
     return models, 'error_comparison', title
+
+def get_error_comparison_multitask(g12s=[0, 5, 10], sigma_u=None,
+                                   delays=range(1, 10, 2)):
+    models = {}
+    model = PiLearnModelUdelay
+    for g12 in g12s:
+        P, G, mu, g = get_feedback_model_pars(g12=g12, mu3=20)
+        for d in delays:
+            models[(sigma_u, d, g12)] = (model, {'delay': d, 'P': P, 'G': G,
+                                                 'sigma_u': sigma_u, 'mu': mu})
+    title = 'Comparison of learning'
+    return models, 'error_comparison_multitask', title
 
 def get_error_comparison_du(sigmas=[None, 1, 5], delays=[5, 15, 25, 50],
                             dts=[1e-1, 1e-3], eta=1e-1, dt=1e-2):
