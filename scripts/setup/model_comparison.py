@@ -54,7 +54,7 @@ def compare_prob(sigma=3, delay=5, eta=1e-2):
           rf'$\sigma_u = {sigma}$'] = \
                                             (PiLearnModelUdelayProb, kwargs)
     title = 'Comparison of gradient descent and bayesian ' \
-           f'linear regression learning ({eta=}, {delay=})'
+           f'linear regression learning (eta={eta}, delay={delay})'
     return models, _name + '_prob', title
 
 def get_error_comparison(sigmas=[None, 1, 5], delays=[5, 15, 25, 50]):
