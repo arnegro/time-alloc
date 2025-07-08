@@ -5,7 +5,7 @@ from matplotlib import pyplot as plt
 from matplotlib.patches import Rectangle
 import multiprocessing as mp
 from model import Model
-from setup.models import get_base_pars
+from setup.models import get_base_pars, get_feedback_model_pars
 from setup.model_comparison \
         import get_base_model_comparison, get_delay_comparison, \
                get_noise_comparison, compare_prob
@@ -15,14 +15,15 @@ force = False
 
 def run(arg):
     name, (cls, kwargs) = arg
-    t_sample = kwargs['delay'] if 'delay' in kwargs else int(1/dt)
+    _dt = dt if not 'dt' in kwargs else kwargs.pop('dt')
+    t_sample = int(kwargs['delay']/_dt) if 'delay' in kwargs else int(1/_dt)
     if cls != Model:
         m = np.random.randint(n)
         err, Pe = [], []
         for j in range(n):
             print(f'[{j+1}/{n}] {name}', end='    \r')
             P_est = P + np.random.randn(*P.shape)*sd
-            model = cls(P, G, mu, P_est=P_est, dt=dt, **kwargs)
+            model = cls(P, G, mu, P_est=P_est, dt=_dt, **kwargs)
             t, _a, u, u_est = model.simulate(g, T=T, verbose=False)
             if j == m:
                 a = _a
@@ -94,17 +95,20 @@ def plot(res, models, T, title):
     return fig, axs
 
 if __name__ == '__main__':
-    P, G, mu, g = get_base_pars()
+    # P, G, mu, g = get_base_pars()
 
-    models, name, title = get_base_model_comparison()
-    # models, name, title = get_delay_comparison()
+    dt = 1e-3
+    # models, name, title = get_base_model_comparison()
+    models, name, title = get_delay_comparison(delays=[1, 5, 20], dt=dt)
     # models, name, title = get_noise_comparison()
     # models, name, title = compare_prob()
 
+    P, G, mu, g = get_feedback_model_pars(g12=5, mu3=20)
+    name += '-feedback-model'
+
     sd = 1
-    T = 10000
-    n = 50
-    dt = 1e-1
+    T = 2000
+    n = 8
 
     pickle_fl = Path('data') / f'{name}.pickle'
     if not force and pickle_fl.exists():

@@ -14,6 +14,11 @@ class Model():
         self.sigma_u = sigma_u
         self._nrecvars = 2
 
+    def _record(self):
+        return
+    def _record_setup(self):
+        return
+
     def step_a(self, a, u, G, mu):
         da = self.dt * (np.clip(u, a_min=mu, a_max=None)
                       - G @ np.clip(a, a_min=0, a_max=None))
@@ -28,6 +33,7 @@ class Model():
     def step(self, t, g):
         self.a = self.step_a(self.a, self.u, self.G, self.mu)
         self.u = self.step_u(self.a, self.u, g, self.P, sigma_u=self.sigma_u)
+        self._record()
         return self.a, self.u
 
     def simulate(self, *args, **kwargs):
@@ -38,6 +44,7 @@ class Model():
     def _simulate(self, g, T, a0=None, u0=None, verbose=True, _nrecvars=2):
         self.a = a0 if a0 is not None else self.a0.copy()
         self.u = u0 if u0 is not None else self.u0.copy()
+        self._record_setup()
         t = np.arange(0, T, self.dt)
         res = np.empty((len(t), _nrecvars, self.dim))
         for i, _t in enumerate(t):
@@ -47,30 +54,3 @@ class Model():
             res[i] = self.step(_t, g(_t))
         if verbose: print()
         return t, res
-
-class PiLearnModelBase(Model):
-    def __init__(self, *args, eta=1e-3, P_est=None, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.P_est = np.zeros((self.dim, self.dim)) \
-                                if P_est is None else P_est
-        self.eta = eta
-        self.u_est = self.u0.copy()
-
-    def step_P_est(self):
-        return P_est
-
-    def step(self, t, g):
-        self.a = self.step_a(self.a, self.u_est, self.G, self.mu)
-        self.u = self.step_u(self.a, self.u, g, self.P, self.sigma_u)
-        self.u_est = self.step_u(self.a, self.u_est, g, self.P_est, None)
-        self.P_est = self.step_P_est()
-        if hasattr(self, 'err'):
-            self.err.append(np.mean((self.P_est - self.P)**2))
-        return self.a, self.u, self.u_est
-
-    def simulate(self, *args, **kwargs):
-        self.err = []
-        t, res = self._simulate(*args, _nrecvars=3, **kwargs)
-        a, u, u_est = res[:,0], res[:,1], res[:,2]
-        return t, a, u, u_est
-

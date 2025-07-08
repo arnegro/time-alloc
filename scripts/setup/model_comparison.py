@@ -17,10 +17,11 @@ def get_base_model_comparison():
     return _get_base_model() | models, _name, title
 
 def get_delay_comparison(delays=[5, 20, 50], model=PiLearnModelUdelay,
-                         base_eta=1e-2):
+                         base_eta=1e-3, dt=1e-1):
     models = _get_base_model()
     for d in delays:
-        models[f'delay = {d}'] = (model, {'delay': d, 'eta': base_eta/d})
+        models[f'delay = {d}'] = (model, {'delay': d, 'eta': base_eta,
+                                          'dt': min(dt, d/10)})
     title = r'Comparison of different delays for delay learning of ' \
             r'$\Pi_e$ with $\vec{u}_e$ updates'
     return models, _name + '_delays', title
@@ -62,9 +63,26 @@ def get_error_comparison(sigmas=[None, 1, 5], delays=[5, 15, 25, 50]):
         for d in delays:
             for m, model in [('grad. desc.', PiLearnModelUdelay),
                              ('bayes.', PiLearnModelUdelayProb)]:
-                models[(s, d, m)] = (model, {'sigma_u': s})
+                models[(s, d, m)] = (model, {'sigma_u': s, 'delay': d})
     title = 'Comparison of learning'
     return models, 'error_comparison', title
+
+def get_error_comparison_du(sigmas=[None, 1, 5], delays=[5, 15, 25, 50],
+                            dts=[1e-1, 1e-3], eta=1e-1, dt=1e-2):
+    models = {}
+    m0, model0 = (r'grad. desc.', PiLearnModelUdelay)
+    m1, model1 = (r'grad. desc. $\eta/\Delta t$', PiLearnModelUdelay)
+    m2, model2 = (r'grad. desc. $\dot{u}$', PiLearnModelDU)
+    for s in sigmas:
+        for d in delays:
+            models[(s, d, m1)] = (model1, {'sigma_u': s, 'eta': eta/d})
+            models[(s, d, m0)] = (model0, {'sigma_u': s, 'eta': eta})
+        # for dt in dts:
+            # models[(s, dt, m2)] = (model2, {'sigma_u': s, 'eta': eta,
+                                            # 'dt': dt})
+        models[(s, 0, m1)] = (model2, {'sigma_u': s, 'eta': eta, 'dt': dt})
+    title = 'Comparison of learning'
+    return models, 'error_comparison-du', title
 
 def get_action_comparison(sigmas=[None, 1, 5]):
     models = {}
@@ -76,3 +94,13 @@ def get_action_comparison(sigmas=[None, 1, 5]):
             models[(s, m)] = (model, {'sigma_u': s})
     title = 'comparison of statistics of actions during learning'
     return models, 'action_comparison', title
+
+def get_learning_basin_comparison(sigmas=[None, 2], delay=24, eta=1e-3):
+    models = {}
+    for s in sigmas:
+        for m, model in [('grad. desc.', PiLearnModelUdelay),
+                         ('bayes', PiLearnModelUdelayProb)]:
+            models[(s, m)] = (model, {'sigma_u': s, 'delay': delay,
+                                      'eta': eta})
+    title = 'comparison of basin of attraction of learning procedures'
+    return models, 'learning_basin', title

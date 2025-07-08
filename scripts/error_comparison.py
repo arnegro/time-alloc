@@ -5,19 +5,25 @@ from matplotlib.patches import Rectangle
 import multiprocessing as mp
 import pickle
 from model import Model
-from setup.models import get_base_pars
-from setup.model_comparison import get_error_comparison
+from setup.models import get_base_pars, get_feedback_model_pars
+from setup.model_comparison \
+            import get_error_comparison, get_error_comparison_du
 
 path = Path('figures')
+force = True
 
 def run(arg):
     name, (cls, kwargs) = arg
     t_sample = kwargs['delay'] if 'delay' in kwargs else int(1/dt)
     err, Pe = [], []
+    if 'dt' in kwargs:
+        _dt = kwargs.pop('dt')
+    else:
+        _dt = dt
     for j in range(n):
         print(f'[{j+1}/{n}] {name}', end='    \r')
         P_est = P + np.random.randn(*P.shape)*sd
-        model = cls(P, G, mu, P_est=P_est, dt=dt, **kwargs)
+        model = cls(P, G, mu, P_est=P_est, dt=_dt, **kwargs)
         t, _, _, _ = model.simulate(g, T=T, verbose=False)
         err.append(model.err[::t_sample])
         # Pe.append(model.P_est)
@@ -81,6 +87,12 @@ def plot_trajectories(res, models, title):
                       [f'C{i}' for i in range(20)]))
     cols = dict(zip(set(r[2][0] for r in res), range(100)))
     fig, axs = plt.subplots(len(rows), len(cols), sharex=True, sharey=True)
+    if len(cols) == 1 and len(rows) == 1:
+        axs = np.array([[axs]])
+    elif len(cols) == 1:
+        axs = axs[:,None]
+    elif len(rows) == 1:
+        axs = axs[None,:]
     for t, err, (s,d,mdl) in res:
         t /= 24*365
         ax = axs[rows[mdl], cols[s]]
@@ -94,8 +106,8 @@ def plot_trajectories(res, models, title):
     axs[0,-1].set(yscale='log')
     for ax in axs[-1]:
         ax.set_xlabel('time [years]')
-    legax = axs[-1,-1]
-    legax.legend(loc='lower right', title='delay [h]', frameon=True, ncols=2)
+    for legax in axs[:,-1]:
+        legax.legend(title='delay [h]', frameon=True, ncols=2)
     for ax in axs.flatten():
         ax.grid()
     return fig, axs
@@ -103,25 +115,51 @@ def plot_trajectories(res, models, title):
 if __name__ == '__main__':
     P, G, mu, g = get_base_pars()
 
-    models, name, title = get_error_comparison(sigmas=[None, 3],
-                                               # delays=[5, 50])
-                                               delays=[5, 10, 25, 50])
-
     sd = 1
-    T = 25000
-    n = 15
-    dt = 5e-1
+    T = 1000
+    n = 10
 
+    sigmas = [None, 2]
+    # sigmas = [None]
+
+    delays = [1, 5, 10, 25, 50]
+    dt = 1e-1
     pickle_fl = Path('data') / 'error_comparison_runs.pickle'
+
+    # delays = [.1, 1, 5]
+    # dt = 5e-3
+    # pickle_fl = Path('data') / 'error_comparison_runs2.pickle'
+
+    # delays = [.1, 1, 5]
+    # eta = 1e-3
+    # dt = 1e-1
+    # pickle_fl = Path('data') / 'error_comparison_runs3.pickle'
+
+    # P, G, mu, g = get_feedback_model_pars(g12=5, mu3=20)
+    # delays = [1, 2, 5, 10, 15, 20]
+    # delays = [1, 5, 20]
+    # dt = 1e-1
+    # pickle_fl = Path('data') / 'error_comparison_runs4.pickle'
+
+    models, name, title = get_error_comparison(sigmas=sigmas,
+                                               delays=delays)
     """
-    with mp.Pool(4) as p:
-        res = p.map(run, models.items())
-    with pickle_fl.open('wb') as fl:
-        pickle.dump(res, fl)
+    models, name, title = get_error_comparison_du(sigmas=sigmas, dt=1e-2,
+                                                  # dts=[1e-1, 1e-2, 1e-3],
+                                                  delays=delays, eta=eta)
     """
-    with pickle_fl.open('rb') as fl:
-        res = pickle.load(fl)
+    models = {(s,d,m): v for (s,d,m), v in models.items()
+                         if m.startswith('grad')}
+
     # """
+    if not force and pickle_fl.exists():
+        with pickle_fl.open('rb') as fl:
+            res = pickle.load(fl)
+    else:
+        with mp.Pool(4) as p:
+            res = p.map(run, models.items())
+        with pickle_fl.open('wb') as fl:
+            pickle.dump(res, fl)
 
     # fig, axs = plot(res, models, T, title, ts=[500, T//2, T])
     # fig.savefig(path / f'{name}.png')

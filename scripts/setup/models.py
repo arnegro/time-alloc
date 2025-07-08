@@ -14,3 +14,11 @@ def get_base_pars():
     mu = np.array([0, 20, 0])
     g = lambda t : np.array([4, 0, 0])
     return P, G, mu, g
+
+def get_feedback_model_pars(g12=10, g23=10, g31=10, mu3=0):
+    mu = np.array([0,0,mu3])
+    P = np.array([[4,0,-2], [-2, 4, 0], [0, -2, 4]])
+    G = np.array([[8,g12,10], [10, 8, g23], [g31, 10, 8]])
+    g = lambda t : np.array([2, 0, 0])
+    return P, G, mu, g
+

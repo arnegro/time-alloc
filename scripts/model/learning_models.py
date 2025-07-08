@@ -1,5 +1,37 @@
 import numpy as np
-from model.model_base import PiLearnModelBase
+from model.model_base import Model
+
+class PiLearnModelBase(Model):
+    def __init__(self, *args, eta=1e-3, P_est=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.P_est = np.zeros((self.dim, self.dim)) \
+                                if P_est is None else P_est
+        self.eta = eta
+        self.u_est = self.u0.copy()
+
+    def step_P_est(self):
+        return P_est
+
+    def step(self, t, g):
+        self.a = self.step_a(self.a, self.u_est, self.G, self.mu)
+        self.u = self.step_u(self.a, self.u, g, self.P, self.sigma_u)
+        self.u_est = self.step_u(self.a, self.u_est, g, self.P_est, None)
+        self.P_est = self.step_P_est()
+        self._record()
+        return self.a, self.u, self.u_est
+
+    def _record(self):
+        super()._record()
+        if hasattr(self, 'err'):
+            self.err.append(np.mean((self.P_est - self.P)**2))
+    def _record_setup(self):
+        super()._record_setup()
+        self.err = []
+
+    def simulate(self, *args, **kwargs):
+        t, res = self._simulate(*args, _nrecvars=3, **kwargs)
+        a, u, u_est = res[:,0], res[:,1], res[:,2]
+        return t, a, u, u_est
 
 class PiLearnModelU(PiLearnModelBase):
     def step_P_est(self):
@@ -29,12 +61,10 @@ class PiLearnModelUdelay(PiLearnModelBase):
 
     def step(self, t, g):
         update = t // self.delay != (t+self.dt) // self.delay
-        # print(self.a, self.u)
         super().step(t, g)
         self.A += self.dt * np.clip(self.a, a_min=0, a_max=None)
         if update:
             self.update_step()
-            # quit()
         return self.a, self.u, self.u_est
 
 class PiLearnModelDU(PiLearnModelBase):
@@ -53,6 +83,7 @@ class PiLearnModelDU(PiLearnModelBase):
         self.dudt = g - self.P @ np.clip(self.a, a_min=0, a_max=None)
         self.dudt_est = g - self.P_est @ np.clip(self.a, a_min=0, a_max=None)
         super().step(t, g)
+        self.u_est = self.u  # then limit of delay model with eta -> eta/delay?? --- naja...
         return self.a, self.u, self.u_est
 
 class PiLearnModelUdelayMu(PiLearnModelUdelay):
