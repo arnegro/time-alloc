@@ -11,7 +11,7 @@ from setup.model_comparison \
                get_noise_comparison, compare_prob
 
 path = Path('figures')
-force = False
+force = True
 
 def run(arg):
     name, (cls, kwargs) = arg
@@ -95,20 +95,22 @@ def plot(res, models, T, title):
     return fig, axs
 
 if __name__ == '__main__':
-    # P, G, mu, g = get_base_pars()
+    P, G, mu, g = get_base_pars()
 
-    dt = 1e-3
+    dt = 1e-2
     # models, name, title = get_base_model_comparison()
     models, name, title = get_delay_comparison(delays=[1, 5, 20], dt=dt)
     # models, name, title = get_noise_comparison()
     # models, name, title = compare_prob()
 
-    P, G, mu, g = get_feedback_model_pars(g12=5, mu3=20)
-    name += '-feedback-model'
+    # P, G, mu, g = get_feedback_model_pars(g12=5, mu3=20)
+    # name += '-feedback-model'
+    name += '-test2'
+    P *= 1
 
     sd = 1
-    T = 2000
-    n = 8
+    T = 200
+    n = 2
 
     pickle_fl = Path('data') / f'{name}.pickle'
     if not force and pickle_fl.exists():

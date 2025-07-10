@@ -4,13 +4,14 @@ from mpl_toolkits.mplot3d.art3d import Line3DCollection
 from matplotlib.collections import LineCollection
 from matplotlib import cm
 from model import FeedbackModelG, FeedbackModelPi, FeedbackModelMu
+from plotting import colwidth, save_plot
 
 def clip(x, y=0):
     return max(x, y)
 
 def beta_plot():
     n = 100
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=(colwidth, 1.5))
     betas = np.linspace(-.5, 1, n)
     cmap = plt.get_cmap('plasma')
     ## set x of divergence to one: * pi at x
@@ -18,11 +19,13 @@ def beta_plot():
     ## set x of divergence to one: * pi^2/4g at x
     ax.plot(betas, 2 / (1 + np.sqrt(1 - betas)), label=r'$\Pi$')
     ax.set(yscale='log', xlabel=r'$\beta / \beta_{c}$',
-            ylabel=r'$a^* / a^*_0$',
-            title=r'rescaling of action fixed point under different $\beta$')
+            ylabel=r'$a^* / a^*_0$')#,
+            # title=r'rescaling of action fixed point under different $\beta$')
     plt.grid()
-    ax.legend(title='feedback via')
-    plt.savefig('figures/feedback_1d-beta-rescale-a.png')
+    ax.legend(title='feedback via', fontsize=6)
+    fig.subplots_adjust(top=0.985, bottom=0.234, left=0.146, right=0.99,
+                        hspace=0.2, wspace=0.2)
+    save_plot('feedback_1d-beta-rescale-a')
     plt.show()
 
 if __name__ == '__main__':
