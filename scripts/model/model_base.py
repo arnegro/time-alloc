@@ -2,12 +2,12 @@ import numpy as np
 
 class Model():
     def __init__(self, P, G, mu, dt=1e-2, a0=None, u0=None, sigma_u=None):
-        self.P = P
-        self.G = G
-        self.mu = mu
+        self.P = P.copy()
+        self.G = G.copy()
+        self.mu = mu.copy()
         self.dim = len(mu)
-        self.a0 = np.zeros(self.dim) if a0 is None else a0
-        self.u0 = np.zeros(self.dim) if u0 is None else u0
+        self.a0 = np.zeros(self.dim) if a0 is None else a0.copy()
+        self.u0 = np.zeros(self.dim) if u0 is None else u0.copy()
         self.a = self.a0.copy()
         self.u = self.u0.copy()
         self.dt = dt
@@ -47,10 +47,16 @@ class Model():
         self._record_setup()
         t = np.arange(0, T, self.dt)
         res = np.empty((len(t), _nrecvars, self.dim))
+        try:
+            g(0)
+        except TypeError:
+            g = lambda t : g
         for i, _t in enumerate(t):
             if verbose:
                 print(f'[{int(np.round(i/len(t)*100))}%] --- '
                       f'{_t:.2f}/{T} hours simulated', end='       \r')
             res[i] = self.step(_t, g(_t))
-        if verbose: print()
+        if verbose:
+                print(f'[100%] --- '
+                      f'{T}/{T} hours simulated', end='       \n')
         return t, res

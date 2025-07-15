@@ -1,5 +1,6 @@
 import sys
 from pathlib import Path
+import numpy as np
 from matplotlib import pyplot as plt
 
 pt_to_inch = lambda pt : pt / 72
@@ -44,6 +45,16 @@ def save_plot(name: str, directory: str = fig_dir, fig=None,
         fig = plt.gcf()
     fig.savefig(directory / name, **kwargs)
     return directory / name
+
+def despine(ax, which=['top', 'right']):
+    if which == 'all':
+        which = ['top', 'bottom', 'left', 'right']
+    if type(ax) in [list, np.ndarray]:
+        for axi in ax:
+            despine(axi, which=which)
+    else:
+        for spine in which:
+            ax.spines[spine].set_visible(False)
 
 ##############################################################################
 

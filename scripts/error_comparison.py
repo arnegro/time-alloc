@@ -11,7 +11,7 @@ from setup.model_comparison \
 from plotting import colwidth, save_plot
 
 path = Path('figures')
-force = True
+force = False
 
 def run(arg):
     name, (cls, kwargs) = arg
@@ -158,11 +158,11 @@ if __name__ == '__main__':
     name_ext = '-base_model'
 
     delays = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-    # name_ext += '-normal'
-    # pickle_fl = Path('data') / 'error_comparison_runs-normal.pickle'
-    P *= 2
-    name_ext += '-faster'
-    pickle_fl = Path('data') / 'error_comparison_runs-faster.pickle'
+    name_ext += '-normal'
+    pickle_fl = Path('data') / 'error_comparison_runs-normal.pickle'
+    # P *= 2
+    # name_ext += '-faster'
+    # pickle_fl = Path('data') / 'error_comparison_runs-faster.pickle'
 
     # delays = [.1, 1, 5]
     # dt = 5e-3

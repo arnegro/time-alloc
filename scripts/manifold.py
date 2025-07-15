@@ -6,8 +6,8 @@ from setup.models import get_base_pars, get_feedback_model_pars
 
 if __name__ == '__main__':
     P, G, mu, g = get_base_pars()
-    P, G, mu, g = get_feedback_model_pars()
-    # P, G, mu, g = get_feedback_model_pars(g12=5, mu3=20)
+    # P, G, mu, g = get_feedback_model_pars()
+    P, G, mu, g = get_feedback_model_pars(g12=5, mu3=20)
     dt = 1e-1
 
     model = Model(P, G, mu, dt=dt)
@@ -60,4 +60,5 @@ if __name__ == '__main__':
     x_proj = ((x - m) / s) @ proj
     ax.scatter(x_proj[:,0], x_proj[:,1], c=t, s=2**2, alpha=.4, zorder=10)
 
+    plt.savefig('figures/manifold.png')
     plt.show()

@@ -1,7 +1,7 @@
 import numpy as np
 from model import Model, PiLearnModelU, PiLearnModelDU, PiLearnModelUdelay, \
                   PiLearnModelUdelayMu, PiLearnModelO, PiLearnModelUdelayProb
-from setup.models import get_feedback_model_pars
+from setup.models import get_feedback_model_pars, get_base_pars
 
 _name = 'model_comparison'
 
@@ -118,3 +118,28 @@ def get_learning_basin_comparison(sigmas=[None, 2], delay=24, eta=1e-3):
                                       'eta': eta})
     title = 'comparison of basin of attraction of learning procedures'
     return models, 'learning_basin', title
+
+def get_wrong_P_comparison(delay=25, etas=[1e-7, 1e-3]):
+    P, G, mu, g = get_base_pars()
+    P_est = P.copy()
+    P_est[-1,:] *= -1
+    kwargs = dict(P=P, G=G, mu=mu)
+    models = {'base model': (Model, kwargs.copy())}
+    kwargs['P_est'] = P_est
+    kwargs['delay'] = delay
+    models['bayes'] = (PiLearnModelUdelayProb, kwargs.copy())
+    for eta in etas:
+        kwargs['eta'] = eta
+        models[f'grad. desc. {eta=}'] = (PiLearnModelUdelay, kwargs.copy())
+    title = r'comparison of learning under wrong belief of $\Pi$'
+    return models, 'wrong_P', title
+
+def get_g_bias_comparison(g_bias=np.array([-.5, 0, 0]), delay=5):
+    models = _get_base_model()
+    for m, model in [('grad. desc.', PiLearnModelUdelay),
+                     ('bayes', PiLearnModelUdelayProb)]:
+        for _g in [None, g_bias]:
+            models[f'{m} g_bias = {_g}'] = (model, {'g_bias': _g, 
+                                                    'delay': delay})
+    title = r'comparison of learning under an unknown bias in $g$'
+    return models, 'model-comparison_g-bias', title
