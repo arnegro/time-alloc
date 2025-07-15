@@ -50,7 +50,7 @@ def run(arg):
         for k in range(len(_P)):
             ons = get_onsets(a[:,k])
             offs = get_onsets(-a[:,k])
-            _durs.append(np.median(get_durations(t, ons, offs)))
+            _durs.append(np.mean(get_durations(t, ons, offs)))
         durs.append(_durs)
     return t[::t_sample], np.mean(err, axis=0), \
            np.quantile(err, [.1, .9], axis=0), name, Pe_err, durs
@@ -69,7 +69,7 @@ def plot(res, models, axs):
     ms = {}
     Ts = {}
     for ax in axs:
-        ax.grid()
+        ax.grid(lw=.1)
     for t, err, errq, (_,d,mdl), Pe_err, durs in res:
             if not mdl in ms:
                 ms[mdl] = []
@@ -82,26 +82,28 @@ def plot(res, models, axs):
         ds, ms = zip(*dms)
         ax = axs[row(mdl)]
         ms = np.array(ms)
-        ax.plot(ds, ms, zorder=10, lw=.5, label=['HH', 'leisure', 'work'])
-        ax.plot(ds, ms.mean(axis=1), zorder=10, lw=.75, c='k', ls='--',
+        # ax.plot(ds, ms, zorder=10, lw=.5, label=['HH', 'leisure', 'work'])
+        ax.plot(ds, ms.mean(axis=1), zorder=10, lw=.75, c='k',# ls='--',
                 label='avg')
-        durs = Ts[mdl]
-        for i, Ti in enumerate(np.array(Ts[mdl]).T):
+        # for i, Ti in enumerate(np.array(Ts[mdl]).T):
             # ax.fill_betweenx([0, 1], *np.quantile(Ti, [.25, .75]),
                              # color=f'C{i}', lw=0, alpha=.3,
                              # transform=ax.get_xaxis_transform())
-            ax.plot([np.mean(Ti)]*2, [0, 1], c=f'C{i}', lw=.5, alpha=.5, ls=':',
-                    transform=ax.get_xaxis_transform())
+            # ax.plot([np.mean(Ti)]*2, [0, 1], c=f'C{i}', lw=.5, alpha=.5, ls=':',
+                    # transform=ax.get_xaxis_transform())
+        ax.plot([np.mean(Ts[mdl])]*2, [0, 1], c=f'k', lw=.5, alpha=.5, ls=':',
+                transform=ax.get_xaxis_transform())
         ax.set(yscale='log')
-    axs[-1].set_xlabel(r'$\Delta t$ [h]')
-    axs[-1].legend(loc='lower right', ncol=4, fontsize='xx-small',
-                   bbox_to_anchor=[0, -1.0, 1, 1], frameon=False)
+    axs[-1].set(xlabel=r'$\Delta t$ [h]', xlim=(min(delays), max(delays)))
+    # axs[-1].legend(loc='lower right', ncol=4, fontsize='xx-small',
+                   # bbox_to_anchor=[0, -1.0, 1, 1], frameon=False)
 
 def plot_trajectories(res, models, axs, cax_parent):
     delays = list(set(r[3][1] for r in res))
     cmap = plt.get_cmap('viridis')
     get_color = lambda d : cmap((d - min(delays)) / (max(delays) - min(delays)))
     for t, err, errq, (_,d,mdl), _, _ in res:
+        if d not in delays[::3]: continue
         t /= 24*365
         ax = axs[row(mdl)]
         c = get_color(d)
@@ -111,7 +113,7 @@ def plot_trajectories(res, models, axs, cax_parent):
         ax.set(yscale='log', ylabel=f'MSE ({row_label_i(i)})')
     axs[-1].set_xlabel('time [years]')
     for ax in axs.flatten():
-        ax.grid()
+        ax.grid(lw=.1)
     cax = cax_parent.inset_axes([0, 1, 1, .05])
     im = cax.imshow([[]], vmin=min(delays), vmax=max(delays), aspect='auto',
                     cmap=cmap)
@@ -150,7 +152,7 @@ if __name__ == '__main__':
     fig, axs = plt.subplots(2, 2, sharex='col', figsize=(halfwidth, 2))
     plot(res, models, axs[:,1])
     plot_trajectories(res, models, axs[:,0], axs[0,1])
-    fig.subplots_adjust(left=half_l, top=0.965, bottom=0.3, right=0.995,
+    fig.subplots_adjust(left=half_l, top=0.965, bottom=0.2, right=0.985,
                         hspace=0.2, wspace=0.340)
     save_plot('fig_delay')
     plt.show()

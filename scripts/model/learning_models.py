@@ -2,7 +2,7 @@ import numpy as np
 from model.model_base import Model
 
 class PiLearnModelBase(Model):
-    def __init__(self, *args, eta=1e-2, P_est=None, g_bias=None, **kwargs):
+    def __init__(self, *args, eta=1e-3, P_est=None, g_bias=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.P_est = np.zeros((self.dim, self.dim)) \
                                 if P_est is None else P_est
