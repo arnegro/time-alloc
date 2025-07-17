@@ -81,6 +81,20 @@ def get_error_comparison_multitask(g12s=[0, 5, 10], sigma_u=None,
     title = 'Comparison of learning'
     return models, 'error_comparison_multitask', title
 
+def get_error_comparison_fig_multitask(gammas=[0, 2.5, 3], sigma_u=None,
+                                       delays=[5]):
+    models = {}
+    model = PiLearnModelUdelay
+    for g12 in gammas:
+        P, G, mu, g = get_base_pars(gamma=g12)
+        for d in delays:
+            for m, model in [('grad. desc.', PiLearnModelUdelay),
+                             ('bayes.', PiLearnModelUdelayProb)]:
+                models[(g12, d, m)] = (model, {'delay': d, 'P': P, 'G': G,
+                                               'sigma_u': sigma_u, 'mu': mu})
+    title = 'Comparison of learning'
+    return models, 'error_comparison_multitask', title
+
 def get_error_comparison_du(sigmas=[None, 1, 5], delays=[5, 15, 25, 50],
                             dts=[1e-1, 1e-3], eta=1e-1, dt=1e-2):
     models = {}

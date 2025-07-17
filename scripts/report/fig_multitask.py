@@ -2,13 +2,12 @@ from pathlib import Path
 import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.patches import Rectangle
-from matplotlib.colors import LogNorm
+from matplotlib.colors import Normalize
 import multiprocessing as mp
 import pickle
 from model import Model
 from setup.models import get_base_pars, get_feedback_model_pars
-from setup.model_comparison \
-            import get_error_comparison, get_error_comparison_du, get_error_comparison_multitask
+from setup.model_comparison import get_error_comparison_fig_multitask
 from plotting import halfwidth, save_plot, half_l
 
 path = Path('figures')
@@ -41,45 +40,43 @@ def model_color(mdl):
     return 'g' if mdl.startswith('bayes') else 'b'
 
 def plot(res, models, axs):
-    sigmas = list(set(r[3][0] for r in res))
+    gammas = list(set(r[3][0] for r in res))
+    delays = list(set(r[3][1] for r in res))
+    delays.sort()
+    ls = dict(zip(delays, [':', '-', '--']))
+    colors = dict(zip(delays, ['g', 'r', 'b']))
     ms = {}
-    ax.grid(lw=.1)
-    ax.text(.01, .98, f'(b)', transform=ax.transAxes,
-            va='top', ha='left', size='x-small')
-    for t, err, errq, (s,_,mdl) in res:
-        if s == 0:
-            ax.scatter([0], [err[-1]], transform=ax.get_yaxis_transform(),
-                       s=3**2, clip_on=False, zorder=1000, c=model_color(mdl),
-                       marker='x', lw=.7)
-            continue
-        if not mdl in ms:
-            ms[mdl] = []
-        ms[mdl].append((s, err[-1]))
-    for mdl, sms in ms.items():
-        sms = sorted(sms, key=lambda sm: sm[0])
-        ss, ms = zip(*sms)
-        ax.plot(ss, ms, zorder=10, lw=.75, c=model_color(mdl),# ls='--',
-                label=row_label(mdl))
-    sigmas.pop(0)
-    ax.set(xlabel=r'$\sigma_u$', xlim=(min(sigmas), max(sigmas)), 
-           xscale='log', yscale='log')
-    ax.legend(frameon=False, fontsize='xx-small')
+    for lab, ax in zip(['i', 'ii'], axs):
+        ax.grid(lw=.1)
+        ax.text(.01, .97, f'(b{lab})', transform=ax.transAxes,
+                va='top', ha='left', size='xx-small')
+    for t, err, errq, (gamma,d,mdl) in res:
+            if not mdl in ms:
+                ms[mdl] = {}
+            if not d in ms[mdl]:
+                ms[mdl][d] = []
+            ms[mdl][d].append((gamma, err[-1]))
+    for mdl, dms in ms.items():
+        for d, gms in dms.items():
+            dms = sorted(gms, key=lambda gm: gm[0])
+            gs, ms = zip(*gms)
+            ax = axs[row(mdl)]
+            ax.plot(gs, ms, zorder=10, lw=.75, c=colors[d], ls=ls[d])
+            ax.set(yscale='log')
+    axs[-1].set(xlabel=r'$\gamma$', xlim=(min(gammas), max(gammas)))
 
 def plot_trajectories(res, models, axs, cax_parent):
-    sigmas = list(set(r[3][0] for r in res))
-    sorted(sigmas)
-    sigmas.pop(0)
+    gammas = list(set(r[3][0] for r in res))
+    sorted(gammas)
     cmap = plt.get_cmap('viridis')
-    norm = LogNorm(vmin=min(sigmas), vmax=max(sigmas))
+    norm = Normalize(vmin=min(gammas), vmax=max(gammas))
     get_color = lambda s : cmap(norm(s))
-    for t, err, errq, (s,_,mdl) in res:
+    for t, err, errq, (gamma,d,mdl) in res:
+        if d != 5: continue
         t /= 24*365
         ax = axs[row(mdl)]
-        if s == 0:
-            c = model_color(mdl)
-        else:
-            c = get_color(s)
-            # if s not in sigmas[::2]: continue
+        c = get_color(gamma)
+        # if s not in sigmas[::2]: continue
         ax.plot(t, err, c=c, lw=.75)
         ax.fill_between(t, *errq, color=c, alpha=.2, lw=0)
     for i, ax in enumerate(axs):
@@ -89,9 +86,9 @@ def plot_trajectories(res, models, axs, cax_parent):
         ax.grid(lw=.1)
         ax.text(.01, .03, f'(a{lab})', transform=ax.transAxes,
                 va='bottom', ha='left', size='xx-small')
-    cax = cax_parent.inset_axes([0, 1, 1, .02])
-    im = cax.imshow([[]], vmin=min(sigmas), vmax=max(sigmas), aspect='auto',
-                    cmap=cmap, norm='log')
+    cax = cax_parent.inset_axes([0, 1, 1, .04])
+    im = cax.imshow([[]], vmin=min(gammas), vmax=max(gammas), aspect='auto',
+                    cmap=cmap)
     plt.colorbar(im, cax=cax, orientation='horizontal')
     cax.xaxis.tick_top()
     cax.set(xticks=[])
@@ -103,15 +100,17 @@ if __name__ == '__main__':
     T = 2000
     n = 5
 
-    sigma = 0
+    sigma = None
 
-    sigmas = np.concatenate([[0], np.geomspace(1e-4, 3, 3)])
+    gammas = np.linspace(-1, 3, 6)
+    delays = [2, 5, 10]
     dt = 1e-1
-    pickle_fl = Path('data') / 'fig_noise.pickle'
+    pickle_fl = Path('data') / 'fig_multitask.pickle'
 
 
-    models, name, title = get_error_comparison(sigmas=sigmas,
-                                               delays=[5])
+    models, name, title = get_error_comparison_fig_multitask(gammas=gammas,
+                                                             sigma_u=sigma,
+                                                             delays=delays)
 
     if not force and pickle_fl.exists():
         with pickle_fl.open('rb') as fl:
@@ -122,16 +121,12 @@ if __name__ == '__main__':
         with pickle_fl.open('wb') as fl:
             pickle.dump(res, fl)
 
-    fig, axs = plt.subplots(2, 2, sharex='col', sharey='col',
+    fig, axs = plt.subplots(2, 2, sharex='col',# sharey='col',
                             figsize=(halfwidth, 2))
-    gs = axs[0,0].get_gridspec()
-    for ax in axs[:,1]:
-        ax.remove()
-    ax = fig.add_subplot(gs[:,1])
-    plot(res, models, ax)
-    plot_trajectories(res, models, axs[:,0], ax)
+    plot(res, models, axs[:,1])
+    plot_trajectories(res, models, axs[:,0], axs[0,1])
     fig.subplots_adjust(left=half_l, top=0.965, bottom=0.2, right=0.985,
                         hspace=0.2, wspace=0.340)
-    save_plot('fig_noise')
+    save_plot('fig_multitask')
     plt.show()
 

@@ -68,8 +68,10 @@ def plot(res, models, axs):
     delays = dict(zip(delays, range(100)))
     ms = {}
     Ts = {}
-    for ax in axs:
+    for lab, ax in zip(['i', 'ii'], axs):
         ax.grid(lw=.1)
+        ax.text(.01, .97, f'(b{lab})', transform=ax.transAxes,
+                va='top', ha='left', size='xx-small')
     for t, err, errq, (_,d,mdl), Pe_err, durs in res:
             if not mdl in ms:
                 ms[mdl] = []
@@ -112,8 +114,10 @@ def plot_trajectories(res, models, axs, cax_parent):
     for i, ax in enumerate(axs):
         ax.set(yscale='log', ylabel=f'MSE ({row_label_i(i)})')
     axs[-1].set_xlabel('time [years]')
-    for ax in axs.flatten():
+    for lab, ax in zip(['i', 'ii'], axs):
         ax.grid(lw=.1)
+        ax.text(1-.01, 1-.03, f'(a{lab})', transform=ax.transAxes,
+                va='top', ha='right', size='xx-small')
     cax = cax_parent.inset_axes([0, 1, 1, .05])
     im = cax.imshow([[]], vmin=min(delays), vmax=max(delays), aspect='auto',
                     cmap=cmap)
