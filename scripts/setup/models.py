@@ -1,10 +1,11 @@
 import numpy as np
 
-def get_base_pars(gamma=3):
+def get_base_pars(gamma=3, pi=0):
     N = 3
     P = np.zeros((N, N))
     P[0,0] = 4
     P[1,1] = 4
+    P[1,2] = pi
     P[2,:] = [-1, -1, 3]
     G = np.zeros((N, N))
     G[0,:] = [2, gamma, 3]

@@ -14,7 +14,7 @@ class Model():
         self.sigma_u = sigma_u
         self._nrecvars = 2
 
-    def _record(self):
+    def _record(self, t):
         return
     def _record_setup(self):
         return
@@ -33,7 +33,7 @@ class Model():
     def step(self, t, g):
         self.a = self.step_a(self.a, self.u, self.G, self.mu)
         self.u = self.step_u(self.a, self.u, g, self.P, sigma_u=self.sigma_u)
-        self._record()
+        self._record(t)
         return self.a, self.u
 
     def simulate(self, *args, **kwargs):

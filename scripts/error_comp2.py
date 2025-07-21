@@ -7,7 +7,7 @@ import pickle
 from model import Model
 from setup.models import get_base_pars, get_feedback_model_pars
 from setup.model_comparison \
-            import get_error_comparison, get_error_comparison_du, get_error_comparison_multitask
+            import get_error_comparison, get_error_comparison_du, get_error_comparison_multitask, get_error_comparison_fig_multitask
 from plotting import colwidth, save_plot
 
 path = Path('figures')
@@ -15,7 +15,7 @@ force = True
 
 def run(arg):
     name, (cls, kwargs) = arg
-    t_sample = kwargs['delay'] if 'delay' in kwargs else int(1/dt)
+    t_sample = int(kwargs['delay']/dt) if 'delay' in kwargs else int(1/dt)
     err, Pe = [], []
     default_kwargs = dict(P=P, G=G, mu=mu, dt=dt)
     kwargs = default_kwargs | kwargs
@@ -24,13 +24,20 @@ def run(arg):
         print(f'[{j+1}/{n}] {name}', end='    \r')
         P_est = _P + np.random.randn(*_P.shape)*sd
         model = cls(P_est=P_est, **kwargs)
-        t, _, _, _ = model.simulate(g, T=T, verbose=False)
+        t, a, _, _ = model.simulate(g, T=T, verbose=False)
         err.append(model.err[::t_sample])
         # Pe.append(model.P_est)
+    print('----')
+    print(model.G)
+    print(model.P)
+    print(model.mu)
+    print(model)
+    print(f'[{j+1}/{n}] {name} {np.mean(err, axis=0)[-1]}', end='    \n')
+    print('----')
     return t[::t_sample], np.median(err, axis=0), \
            np.quantile(err, [.1, .9], axis=0), name#, Pe
 
-def plot(res, models, legtitle=None):
+def plot(res, models, title):
     markers = dict(zip(set(r[3][0] for r in res), ['o', 'v', '^']))
     axes = dict(zip(set(r[3][0] for r in res), range(100)))
     colors = dict(zip(set(r[3][2] for r in res), ['b', 'r', 'g', 'magenta']))
@@ -74,20 +81,16 @@ def plot(res, models, legtitle=None):
     axs[0].set(yscale='log', ylabel=r'MSE in $\Pi$')
     for ax in axs:
         ax.set_xlabel('delay [h]')
-    if legtitle is not None:
-        axs[0].plot([], lw=0, c='w', label=legtitle)
     for mdl, c in colors.items():
         axs[0].plot([], color=c, label=mdl)
-    if len(markers) > 1:
-        for s, m in markers.items():
-            s = s if s is not None else 0
-            label = rf'$\sigma_u = {s}$'
-            axs[0].scatter([], [], color='k', marker=m, facecolor='w', s=3**2,
-                        lw=.5, label=label)
-    handles, labels = axs[0].get_legend_handles_labels()
-    fig.legend(handles, labels, ncols=len(handles)+1,
-               loc='lower right', fontsize='xx-small', markerfirst=True,
-               frameon=False)
+    for s, m in markers.items():
+        s = s if s is not None else 0
+        label = rf'$\sigma_u = {s}$'
+        axs[0].scatter([], [], color='k', marker=m, facecolor='w', s=3**2,
+                       lw=.5, label=label)
+    fig.legend(*axs[0].get_legend_handles_labels(), ncols=4,
+               loc='lower right',
+               fontsize='xx-small', markerfirst=True, frameon=False)
     fig.subplots_adjust(top=0.985, bottom=0.286, left=0.166, right=0.99,
                         hspace=0.2, wspace=0.147)
     return fig, axs
@@ -144,25 +147,16 @@ if __name__ == '__main__':
     P, G, mu, g = get_base_pars()
 
     sd = 1
-    T = 3000
-    n = 5
-
-    legtitle = None
+    T = 5000
+    n = 2
 
     sigmas = [None, 2]
-    sigmas = [None]
+    # sigmas = [None]
 
     delays = [1, 5, 10, 25, 50]
     dt = 1e-1
     pickle_fl = Path('data') / 'error_comparison_runs.pickle'
     name_ext = '-base_model'
-
-    delays = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-    name_ext += '-normal'
-    pickle_fl = Path('data') / 'error_comparison_runs-normal.pickle'
-    # P *= 2
-    # name_ext += '-faster'
-    # pickle_fl = Path('data') / 'error_comparison_runs-faster.pickle'
 
     # delays = [.1, 1, 5]
     # dt = 5e-3
@@ -173,23 +167,22 @@ if __name__ == '__main__':
     # dt = 1e-1
     # pickle_fl = Path('data') / 'error_comparison_runs3.pickle'
 
-    """
     P, G, mu, g = get_feedback_model_pars(g12=5, mu3=20)
     delays = [1, 2, 5, 10, 15, 20]
     delays = [1, 5, 20]
     dt = 1e-1
     pickle_fl = Path('data') / 'error_comparison_runs4.pickle'
     name_ext = '-feedback_model'
-    """
-    # models, name, title = get_error_comparison(sigmas=sigmas,
-                                               # delays=delays)
 
-    delays = [1, 5, 20]
+    models, name, title = get_error_comparison(sigmas=sigmas,
+                                               delays=delays)
 
-    models, name, title = get_error_comparison_multitask(delays=delays)
+    models, name, title = get_error_comparison_multitask(delays=[5])
+    models, name, title = get_error_comparison_fig_multitask(gammas=[0, 10/3],
+                                                             sigma_u=None,
+                                                             delays=[5])
     name_ext = '-multitask'
     pickle_fl = Path('data') / 'error_comparison_runs7.pickle'
-    legtitle = r'$\gamma_{12}$:'
     """
     models, name, title = get_error_comparison_du(sigmas=sigmas, dt=1e-2,
                                                   # dts=[1e-1, 1e-2, 1e-3],
@@ -208,10 +201,10 @@ if __name__ == '__main__':
             res = p.map(run, models.items())
         with pickle_fl.open('wb') as fl:
             pickle.dump(res, fl)
+    quit()
 
-    fig, axs = plot(res, models, legtitle)
+    fig, axs = plot(res, models, title)
     save_plot(name)
     fig, axs = plot_trajectories(res, models, title)
     save_plot(name+'_trajectories')
     plt.show()
-

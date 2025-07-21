@@ -93,7 +93,7 @@ def plot(res, models, axs):
                              # transform=ax.get_xaxis_transform())
             # ax.plot([np.mean(Ti)]*2, [0, 1], c=f'C{i}', lw=.5, alpha=.5, ls=':',
                     # transform=ax.get_xaxis_transform())
-        ax.plot([np.mean(Ts[mdl])]*2, [0, 1], c=f'k', lw=.5, alpha=.5, ls=':',
+        ax.plot([np.mean(Ts[mdl])]*2, [0, 1], c=f'k', lw=.5, alpha=1, ls=':',
                 transform=ax.get_xaxis_transform())
         ax.set(yscale='log')
     axs[-1].set(xlabel=r'$\Delta t$ [h]', xlim=(min(delays), max(delays)))
@@ -158,6 +158,7 @@ if __name__ == '__main__':
     plot_trajectories(res, models, axs[:,0], axs[0,1])
     fig.subplots_adjust(left=half_l, top=0.965, bottom=0.2, right=0.985,
                         hspace=0.2, wspace=0.340)
+    fig.align_ylabels()
     save_plot('fig_delay')
     plt.show()
 

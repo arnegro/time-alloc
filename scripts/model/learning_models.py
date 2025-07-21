@@ -19,11 +19,11 @@ class PiLearnModelBase(Model):
         self.u_est = self.step_u(self.a, self.u_est, g-self.g_bias,
                                  self.P_est, None)
         self.P_est = self.step_P_est()
-        self._record()
+        self._record(t)
         return self.a, self.u, self.u_est
 
-    def _record(self):
-        super()._record()
+    def _record(self, t):
+        super()._record(t)
         if hasattr(self, 'err'):
             self.err.append(np.mean((self.P_est - self.P)**2))
     def _record_setup(self):
@@ -122,11 +122,12 @@ class PiLearnModelO(PiLearnModelBase):
         return self.P_est + dP
 
 class PiLearnModelUdelayProb(PiLearnModelUdelay):
-    def __init__(self, *args, U_inv=None, **kwargs):
+    def __init__(self, *args, U_inv=None, max_certainty=np.inf, **kwargs):
         super().__init__(*args, **kwargs)
         n = self.u.shape[0]
         self.M = self.P_est.copy()
         self.U_inv = np.eye(n) *1e-2 if U_inv is None else U_inv
+        self.max_certainty = max_certainty
 
     def simulate(self, *args, u0=None, **kwargs):
         self._previous_u = u0 if u0 is not None else self.u0.copy()
@@ -145,7 +146,12 @@ class PiLearnModelUdelayProb(PiLearnModelUdelay):
         x = x[:,None]
         y = y[:,None]
         U_inv = self.U_inv + np.outer(x, x)
-        dM = np.outer(y - self.M @ x, x) @ np.linalg.inv(U_inv)
+        tr = np.linalg.trace(U_inv)
+        if tr > self.max_certainty:
+            corr = tr / self.max_certainty
+        else:
+            corr = 1
+        dM = np.outer(y - self.M @ x, x) @ np.linalg.inv(U_inv) / corr
         self.M += dM
         self.U_inv = U_inv
         self._previous_u = self.u.copy()

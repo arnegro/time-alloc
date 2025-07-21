@@ -40,7 +40,7 @@ def row_label_i(i):
 def model_color(mdl):
     return 'g' if mdl.startswith('bayes') else 'b'
 
-def plot(res, models, axs):
+def plot(res, models, ax):
     sigmas = list(set(r[3][0] for r in res))
     ms = {}
     ax.grid(lw=.1)
@@ -63,7 +63,7 @@ def plot(res, models, axs):
     sigmas.pop(0)
     ax.set(xlabel=r'$\sigma_u$', xlim=(min(sigmas), max(sigmas)), 
            xscale='log', yscale='log')
-    ax.legend(frameon=False, fontsize='xx-small')
+    ax.legend(frameon=False, fontsize='xx-small', loc='lower right')
 
 def plot_trajectories(res, models, axs, cax_parent):
     sigmas = list(set(r[3][0] for r in res))
@@ -79,7 +79,7 @@ def plot_trajectories(res, models, axs, cax_parent):
             c = model_color(mdl)
         else:
             c = get_color(s)
-            # if s not in sigmas[::2]: continue
+            if s != max(sigmas) and s not in sigmas[::2]: continue
         ax.plot(t, err, c=c, lw=.75)
         ax.fill_between(t, *errq, color=c, alpha=.2, lw=0)
     for i, ax in enumerate(axs):
@@ -132,6 +132,7 @@ if __name__ == '__main__':
     plot_trajectories(res, models, axs[:,0], ax)
     fig.subplots_adjust(left=half_l, top=0.965, bottom=0.2, right=0.985,
                         hspace=0.2, wspace=0.340)
+    fig.align_ylabels()
     save_plot('fig_noise')
     plt.show()
 

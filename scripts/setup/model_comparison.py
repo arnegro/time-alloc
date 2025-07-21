@@ -87,6 +87,9 @@ def get_error_comparison_fig_multitask(gammas=[0, 2.5, 3], sigma_u=None,
     model = PiLearnModelUdelay
     for g12 in gammas:
         P, G, mu, g = get_base_pars(gamma=g12)
+        P[1,0] = -2
+        # P[0,1] = -2
+        # P, G, mu, g = get_feedback_model_pars(g12=3*g12, mu3=20)
         for d in delays:
             for m, model in [('grad. desc.', PiLearnModelUdelay),
                              ('bayes.', PiLearnModelUdelayProb)]:
