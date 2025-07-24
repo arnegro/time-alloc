@@ -50,8 +50,12 @@ def plot(res, models, axs):
     ms = {}
     for lab, ax in zip(['i', 'ii'], axs):
         ax.grid(lw=.1)
+        if lab == 'i':
+            bbox = dict(facecolor='w', pad=.5, lw=0, alpha=1)
+        else:
+            bbox = None
         ax.text(.01, .97, f'(b{lab})', transform=ax.transAxes,
-                va='top', ha='left', size='xx-small')
+                va='top', ha='left', size='xx-small', bbox=bbox, zorder=1000)
     for t, err, errq, corr, (gamma,d,mdl) in res:
             if not mdl in ms:
                 ms[mdl] = {}
@@ -62,7 +66,10 @@ def plot(res, models, axs):
     axs[-1].set(xlabel=r'$\gamma$', xlim=(min(gammas), max(gammas)))
     for mdl, dms in ms.items():
         ax = axs[row(mdl)]
-        _ax = ax.inset_axes([0.04,0.08,.3,.3])
+        if mdl.startswith('grad'):
+            _ax = ax.inset_axes([0.04,0.08,.3,.3])
+            _ax.text(.02, .04, '(c)', size=6, ha='left', va='bottom',
+                     transform=_ax.transAxes)
         for d, gms in dms.items():
             dms = sorted(gms, key=lambda gm: gm[0])
             gs, ms, cs = zip(*gms)
@@ -71,22 +78,24 @@ def plot(res, models, axs):
                 kwargs['ls'] = ls[d]
                 kwargs['lw'] = .5
             ax.plot(gs, ms, zorder=10, label=d, **kwargs)
-            if d == 5:
+            if d == 5 and mdl.startswith('grad'):
                 _ax.plot(gs, cs, c='k', lw=.3)
                 # _ax.imshow([cs], aspect='auto', cmap='seismic', vmin=-1, vmax=1)
         ax.set(yscale='log')
-        _ax.set(xticklabels=[], xticks=ax.get_xticks(),# yticks=[],
-                 xlim=(min(gammas), max(gammas)))
-        _ax.set_title('corr HH/leisure', size=4, y=.8)
-        # _ax.xaxis.tick_top()
-        _ax.xaxis.set_label_position('top')
-        _ax.yaxis.tick_right()
-        _ax.yaxis.set_label_position('right')
-        _ax.tick_params(labelsize=4, size=2)
+        if mdl.startswith('grad'):
+            _ax.set(xticklabels=[], xticks=ax.get_xticks(),# yticks=[],
+                    xlim=(min(gammas), max(gammas)))
+            _ax.set_title('corr HH/leisure', size=4, y=.8, ha='left', x=0)
+            # _ax.xaxis.tick_top()
+            _ax.xaxis.set_label_position('top')
+            _ax.yaxis.tick_right()
+            _ax.yaxis.set_label_position('right')
+            _ax.tick_params(labelsize=4, size=2)
     axs[0].legend(fontsize=6, ncols=4, frameon=False,
                   borderpad=0, borderaxespad=0,
                   bbox_to_anchor=[0, 1.15, 1, 1], loc='lower right')
-            #, title=r'$\Delta t$ [h]', title_fontsize=6)
+    y0, y1 = axs[0].get_ylim()
+    axs[0].set_ylim(y0, y1*100)
 
 def plot_trajectories(res, models, axs, cax_parent):
     gammas = list(set(r[4][0] for r in res))
@@ -128,7 +137,7 @@ if __name__ == '__main__':
     gammas = np.linspace(-1, 3, 10)
     delays = [2, 5, 10]
     dt = 1e-1
-    pickle_fl = Path('data') / 'fig_multitask2.pickle'
+    pickle_fl = Path('data') / 'fig_multitask.pickle'
 
 
     _, _, _, g = get_feedback_model_pars(g12=5, mu3=20)

@@ -39,9 +39,9 @@ if __name__ == '__main__':
         model = Model(P, G, mu, dt=dt)
         t, a, u = model.simulate(g, T=200)
         a = np.clip(a, a_min=0, a_max=None)
-        _ax.plot(t, a[:,0], lw=.5, label='HH')
-        _ax.plot(t, a[:,1], lw=.5, label='leisure')
-        _ax.plot(t, a[:,2], lw=.2, label='work')
+        _ax.plot(t, a[:,0], lw=.75, label='HH')
+        _ax.plot(t, a[:,1], lw=.75, label='leisure')
+        _ax.plot(t, a[:,2], lw=.5, label='work')
         _ax.text(0, 1, f'({lab})', transform=_ax.transAxes, size='x-small')
         ax.plot([gam, gam], [0, 1], transform=ax.get_xaxis_transform(), lw=.3,
                 c='k', ls=':')

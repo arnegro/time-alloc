@@ -28,7 +28,7 @@ def run(arg):
         model = cls(P_est=P_est, **kwargs)
         t, a, _, _ = model.simulate(g, T=T, verbose=False)
         err.append(model.err[::t_sample])
-    return t[::t_sample], np.mean(err, axis=0), \
+    return t[::t_sample], np.median(err, axis=0), \
            np.quantile(err, [.1, .9], axis=0), name
 
 def row(mdl):
@@ -40,12 +40,12 @@ def row_label_i(i):
 def model_color(mdl):
     return 'g' if mdl.startswith('bayes') else 'b'
 
-def plot(res, models, ax):
+def plot(res, models, ax, P_sig):
     sigmas = list(set(r[3][0] for r in res))
     ms = {}
     ax.grid(lw=.1)
-    ax.text(.01, .98, f'(b)', transform=ax.transAxes,
-            va='top', ha='left', size='x-small')
+    ax.text(.98, .98, f'(b)', transform=ax.transAxes,
+            va='top', ha='right', size='x-small')
     for t, err, errq, (s,_,mdl) in res:
         if s == 0:
             ax.scatter([0], [err[-1]], transform=ax.get_yaxis_transform(),
@@ -64,6 +64,21 @@ def plot(res, models, ax):
     ax.set(xlabel=r'$\sigma_u$', xlim=(min(sigmas), max(sigmas)), 
            xscale='log', yscale='log')
     ax.legend(frameon=False, fontsize='xx-small', loc='lower right')
+    inax = ax.inset_axes([.02, .66, .4, .3])
+    sigmas.sort()
+    sigmas = np.array(sigmas)
+    inax.plot(sigmas, np.sqrt(P_sig)/sigmas, lw=.5, c='k')
+    inax.set(xscale='log', yscale='log',
+             xticks=ax.get_xticks(), xticklabels=[], xlim=ax.get_xlim(), 
+             yticks=[1e0, 1e2, 1e4, 1e6])
+    inax.yaxis.tick_right()
+    inax.grid(lw=.2)
+    inax.text(.98, .98, 'SNR', transform=inax.transAxes, ha='right', va='top',
+              size='xx-small')
+    inax.text(.01, .01, '(c)', transform=inax.transAxes, ha='left', va='bottom',
+              size='xx-small')
+    inax.tick_params(labelsize=4, pad=2)
+    print(inax.get_ylim())
 
 def plot_trajectories(res, models, axs, cax_parent):
     sigmas = list(set(r[3][0] for r in res))
@@ -105,7 +120,7 @@ if __name__ == '__main__':
 
     sigma = 0
 
-    sigmas = np.concatenate([[0], np.geomspace(1e-4, 3, 3)])
+    sigmas = np.concatenate([[0], np.geomspace(2, 5, 3)])
     dt = 1e-1
     pickle_fl = Path('data') / 'fig_noise.pickle'
 
@@ -122,13 +137,19 @@ if __name__ == '__main__':
         with pickle_fl.open('wb') as fl:
             pickle.dump(res, fl)
 
+    model = Model(P=P, G=G, mu=mu, dt=dt)
+    _, _, u = model.simulate(g, T=500)
+    dudt = np.diff(u, axis=0) / dt
+    P_sig = np.mean(dudt**2)
+    print(P_sig)
+
     fig, axs = plt.subplots(2, 2, sharex='col', sharey='col',
                             figsize=(halfwidth, 2))
     gs = axs[0,0].get_gridspec()
     for ax in axs[:,1]:
         ax.remove()
     ax = fig.add_subplot(gs[:,1])
-    plot(res, models, ax)
+    plot(res, models, ax, P_sig)
     plot_trajectories(res, models, axs[:,0], ax)
     fig.subplots_adjust(left=half_l, top=0.965, bottom=0.2, right=0.985,
                         hspace=0.2, wspace=0.340)

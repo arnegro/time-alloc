@@ -9,6 +9,7 @@ class PiLearnModelBase(Model):
         self.eta = eta
         self.u_est = self.u0.copy()
         self.g_bias = np.zeros_like(self.u) if g_bias is None else g_bias
+        self._nrecvars = 3
 
     def step_P_est(self):
         return P_est
@@ -32,9 +33,9 @@ class PiLearnModelBase(Model):
 
     def simulate(self, *args, uest0=None, **kwargs):
         self.uest0 = uest0 if uest0 is not None else self.u0.copy()
-        t, res = self._simulate(*args, _nrecvars=3, **kwargs)
-        a, u, u_est = res[:,0], res[:,1], res[:,2]
-        return t, a, u, u_est
+        return self._simulate(*args, **kwargs)
+        # a, u, u_est = res[:,0], res[:,1], res[:,2]
+        # return t, *res.swapaxes(0, 1)
 
 class PiLearnModelU(PiLearnModelBase):
     def step_P_est(self):

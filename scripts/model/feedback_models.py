@@ -8,9 +8,10 @@ class FeedbackModelG(Model):
         self.beta = beta if beta is not None else np.zeros_like(self.u)
         self.g_star = g if g is not None else np.zeros_like(self.u)
         self.g = g if g is not None else np.zeros_like(self.u)
+        self._nrecvars = 3
 
     def simulate(self, *args, **kwargs):
-        t, res = self._simulate(*args, _nrecvars=3, g=lambda t : 0, **kwargs)
+        t, res = self._simulate(*args, g=lambda t : 0, **kwargs)
         a, u, g = res[:,0], res[:,1], res[:,2]
         return t, a, u, g
 
@@ -31,9 +32,10 @@ class FeedbackModelPi(Model):
         self.beta = beta if beta is not None else np.zeros_like(self.u)
         self.Pi_star = self.Pi.copy()
         self.Pi = self.Pi.copy()
+        self._nrecvars = 3
 
     def simulate(self, *args, **kwargs):
-        t, res = self._simulate(*args, _nrecvars=3, **kwargs)
+        t, res = self._simulate(*args, **kwargs)
         a, u, Pii = res[:,0], res[:,1], res[:,2]
         return t, a, u, Pii
 
@@ -55,9 +57,10 @@ class FeedbackModelMu(Model):
         self.beta = beta if beta is not None else np.zeros_like(self.u)
         self.mu_star = self.mu.copy()
         self.mu = self.mu.copy()
+        self._nrecvars = 3
 
     def simulate(self, *args, **kwargs):
-        t, res = self._simulate(*args, _nrecvars=3, **kwargs)
+        t, res = self._simulate(*args, **kwargs)
         a, u, mu = res[:,0], res[:,1], res[:,2]
         return t, a, u, mu
 
@@ -71,3 +74,30 @@ class FeedbackModelMu(Model):
         self.mu = self.step_mu(self.mu, self.a, self.tau, self.mu_star,
                                self.beta)
         return self.a, self.u, self.mu
+
+class GFeedbackExtension:
+    def __init__(self, g_bar, tau, beta, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.g_bar = g_bar
+        self.tau = tau
+        self.beta = beta
+        self._g = self.g_bar.copy()
+        self.g_bias = np.zeros_like(self.u)
+        self._nrecvars += 1
+
+    def simulate(self, *args, g0=None, **kwargs):
+        self._g = self.g_bar.copy() if g0 is None else g0
+        return super().simulate(*args, **kwargs)
+
+    def step(self, t, g):
+        a = np.clip(self.a, a_min=0, a_max=None)
+        self._g += (self.g_bar - self._g + self.beta * a) / self.tau * self.dt
+        self.g_bias = self._g - self.g_bar
+        res = super().step(t, self._g + g)
+        return *res, self._g
+
+    @staticmethod
+    def make(cls, *args, **kwargs):
+        cls_ext = type(f'{cls.__name__}-g-feedback-extended',
+                       (GFeedbackExtension, cls), {})
+        return cls_ext(*args, **kwargs)

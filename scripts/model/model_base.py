@@ -37,16 +37,16 @@ class Model():
         return self.a, self.u
 
     def simulate(self, *args, **kwargs):
-        t, res = self._simulate(*args, _nrecvars=2, **kwargs)
-        a, u = res[:,0], res[:,1]
-        return t, a, u
+        return self._simulate(*args, **kwargs)
+        # a, u = res[:,0], res[:,1]
+        # return t, a, u
 
-    def _simulate(self, g, T, a0=None, u0=None, verbose=True, _nrecvars=2):
+    def _simulate(self, g, T, a0=None, u0=None, verbose=True):
         self.a = a0 if a0 is not None else self.a0.copy()
         self.u = u0 if u0 is not None else self.u0.copy()
         self._record_setup()
         t = np.arange(0, T, self.dt)
-        res = np.empty((len(t), _nrecvars, self.dim))
+        res = np.empty((len(t), self._nrecvars, self.dim))
         try:
             g(0)
         except TypeError:
@@ -59,4 +59,4 @@ class Model():
         if verbose:
                 print(f'[100%] --- '
                       f'{T}/{T} hours simulated', end='       \n')
-        return t, res
+        return t, *res.swapaxes(0, 1)
