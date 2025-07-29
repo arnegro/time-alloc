@@ -43,6 +43,7 @@ def model_color(mdl):
 
 def plot(res, models, axs):
     gammas = list(set(r[4][0] for r in res))
+    gammas.sort()
     delays = list(set(r[4][1] for r in res))
     delays.sort()
     delays.remove(5)
@@ -70,6 +71,11 @@ def plot(res, models, axs):
             _ax = ax.inset_axes([0.04,0.08,.3,.3])
             _ax.text(.02, .04, '(c)', size=6, ha='left', va='bottom',
                      transform=_ax.transAxes)
+            corr = []
+            for gamma in gammas:
+                corr.append(get_corr(gamma))
+            _ax.plot(gammas, corr, c='k', lw=.3)
+
         for d, gms in dms.items():
             dms = sorted(gms, key=lambda gm: gm[0])
             gs, ms, cs = zip(*gms)
@@ -78,8 +84,8 @@ def plot(res, models, axs):
                 kwargs['ls'] = ls[d]
                 kwargs['lw'] = .5
             ax.plot(gs, ms, zorder=10, label=d, **kwargs)
-            if d == 5 and mdl.startswith('grad'):
-                _ax.plot(gs, cs, c='k', lw=.3)
+            # if d == 5 and mdl.startswith('grad'):
+                # _ax.plot(gs, cs, c='k', lw=.3)
                 # _ax.imshow([cs], aspect='auto', cmap='seismic', vmin=-1, vmax=1)
         ax.set(yscale='log')
         if mdl.startswith('grad'):
@@ -124,6 +130,16 @@ def plot_trajectories(res, models, axs, cax_parent):
     plt.colorbar(im, cax=cax, orientation='horizontal')
     cax.xaxis.tick_top()
     cax.set(xticks=[])
+
+def get_corr(gamma):
+    P, G, mu, g = get_base_pars(gamma=gamma)
+    model = Model(P=P, G=G, mu=mu, dt=5e-2)
+    t, a, u = model.simulate(g=g, T=1000)
+    a = np.clip(a, a_min=0, a_max=None)
+    corr = np.corrcoef(a[t>100,:2], rowvar=False)[1,0]
+    return corr
+
+
 
 if __name__ == '__main__':
     P, G, mu, g = get_base_pars()

@@ -163,24 +163,20 @@ def plot_trajectories(res, axs, cax_parent, ax):
     axs[0].plot([t1[-1], t2[0]], [m1, m2], c='k', ls='--', lw=.5)
     axs[0].plot(t2, [m2]*len(t2), c='k', ls='--', lw=.5)
     ax.plot(t2, [m2]*len(t2), c='k', ls='--', lw=.5)
-    for lab, _ax in zip(['i', 'ii'], axs):
-        _ax.grid(lw=.1)
-        _ax.text(.01, 1-.97, f'(b{lab})', transform=_ax.transAxes,
-                 va='bottom', ha='left', size='xx-small')
-    ax.text(.01, .9, f'(a)', transform=ax.transAxes,
-            va='top', ha='left', size='x-small')
     # axs[1].plot(t1, [s1]*len(t1), c='k')
     # axs[1].plot([t1[-1], t2[0]], [s1, s2], c='k')
     # axs[1].plot(t2, [s2]*len(t2), c='k')
 
     wgd, mgd, sgd, terrgd, errgd = res['gd']
+    l = np.argmin(mgd < m1)
+    mgd[:l] = m1
     errgd, _ = running_stats(errgd, 20)
-    axs[0].plot(t2, mgd, c='r', lw=.5, zorder=1000)
+    axs[0].plot(t2, mgd, c='r', lw=.5, zorder=1.5)
     ax.plot(t2, wgd, c='r', ls='-', lw=.5)
     # _k = k//5
     # sgd[:_k] = np.interp(range(_k), [0,k], [s1, sgd[_k]])
     # axs[1].plot(t2, sgd, c='r')
-    axs[1].plot(terrgd/24/30, errgd, c='r', lw=.5, zorder=1000)
+    axs[1].plot(terrgd/24/30, errgd, c='r', lw=.5, zorder=1.5)
 
     max_certs = list(res['bayes'].keys())
     max_certs.sort()
@@ -193,6 +189,8 @@ def plot_trajectories(res, axs, cax_parent, ax):
         # axs[1].plot(t2, sb, c=get_color(max_cert), lw=.5)
         if max_cert in max_certs[::2]:
             errb, _ = running_stats(errb, 10)
+            l = np.argmin(mb < m1)
+            mb[:l] = m1
             axs[0].plot(t2, mb, c=get_color(max_cert), lw=.5)
             axs[1].plot(terrb/24/30, errb, c=get_color(max_cert), lw=.5)
         if max_cert in max_certs[::4]:
@@ -222,6 +220,13 @@ def plot_trajectories(res, axs, cax_parent, ax):
             va='center', transform=ax.get_yaxis_transform())
     for spine in ax.spines.values():
         spine.set_visible(False)
+    for lab, _ax in zip(['i', 'ii'], axs):
+        _ax.grid(lw=.1)
+        _ax.text(.015, 1-.97, f'(b{lab})', transform=_ax.transAxes,
+                 va='bottom', ha='left', size='xx-small',
+                 bbox=dict(fc='w', lw=0, pad=1.2), zorder=2)
+    ax.text(.01, .9, f'(a)', transform=ax.transAxes,
+            va='top', ha='left', size='x-small')
 
 
 if __name__ == '__main__':

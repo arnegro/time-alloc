@@ -44,7 +44,7 @@ def plot(res, models, ax, P_sig):
     sigmas = list(set(r[3][0] for r in res))
     ms = {}
     ax.grid(lw=.1)
-    ax.text(.98, .98, f'(b)', transform=ax.transAxes,
+    ax.text(.96, .98, f'(b)', transform=ax.transAxes,
             va='top', ha='right', size='x-small')
     for t, err, errq, (s,_,mdl) in res:
         if s == 0:
@@ -64,7 +64,7 @@ def plot(res, models, ax, P_sig):
     ax.set(xlabel=r'$\sigma_u$', xlim=(min(sigmas), max(sigmas)), 
            xscale='log', yscale='log')
     ax.legend(frameon=False, fontsize='xx-small', loc='lower right')
-    inax = ax.inset_axes([.02, .66, .4, .3])
+    inax = ax.inset_axes([.04, .66, .4, .3])
     sigmas.sort()
     sigmas = np.array(sigmas)
     inax.plot(sigmas, np.sqrt(P_sig)/sigmas, lw=.5, c='k')

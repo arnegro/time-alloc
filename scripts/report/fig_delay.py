@@ -2,6 +2,7 @@ from pathlib import Path
 import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.patches import Rectangle
+from matplotlib.ticker import LogLocator
 import multiprocessing as mp
 import pickle
 from model import Model
@@ -104,6 +105,7 @@ def plot_trajectories(res, models, axs, cax_parent):
     delays = list(set(r[3][1] for r in res))
     cmap = plt.get_cmap('viridis')
     get_color = lambda d : cmap((d - min(delays)) / (max(delays) - min(delays)))
+    inax2 = axs[-1].inset_axes([.33, .50, .65, .45])
     for t, err, errq, (_,d,mdl), _, _ in res:
         if d not in delays[::3]: continue
         t /= 24*365
@@ -111,13 +113,34 @@ def plot_trajectories(res, models, axs, cax_parent):
         c = get_color(d)
         ax.plot(t, err, c=c, label=d, lw=.75)
         ax.fill_between(t, *errq, color=c, alpha=.2, lw=0)
+        if mdl.startswith('bayes'):
+            _t = np.arange(len(t)) + 1
+            _t = t*24*365
+            inax2.plot(_t, err, c=c, label=d, lw=.5)
     for i, ax in enumerate(axs):
         ax.set(yscale='log', ylabel=f'MSE ({row_label_i(i)})')
+    inax2.set(xscale='log', yscale='log', 
+              yticks=axs[-1].get_yticks(), ylim=axs[-1].get_ylim(),
+              yticklabels=[])#,# xticklabels=[],
+              # xticks=[1e-4, 1e-3, 1e-2, 1e-1, 1])
+    inax2.set_xlabel('time [hours]', size=5, labelpad=.5)
+    inax2.vlines(24, 0, 1, transform=inax2.get_xaxis_transform(), zorder=-100,
+                 lw=.5, ls=':', color='k')
+    inax2.text(27, .07, '24h', size=3, va='bottom', ha='left',
+               transform=inax2.get_xaxis_transform())
+    inax2.xaxis.set_minor_locator(LogLocator(base=10.0, subs='auto',
+                                             numticks=10))
+    # inax2.xaxis.minorticks_on()
+    inax2.tick_params(which='major', size=2, labelsize=3, pad=1)
+    inax2.tick_params(which='minor', size=1, width=.3)
+    inax2.grid(lw=.1)
     axs[-1].set_xlabel('time [years]')
     for lab, ax in zip(['i', 'ii'], axs):
         ax.grid(lw=.1)
-        ax.text(1-.01, 1-.03, f'(a{lab})', transform=ax.transAxes,
-                va='top', ha='right', size='xx-small')
+        ax.text(.01, .03, f'(a{lab})', transform=ax.transAxes,
+                va='bottom', ha='left', size='xx-small')
+    inax2.text(.02, .05, f'(aiii)', transform=inax2.transAxes,
+            va='bottom', ha='left', size=5)
     cax = cax_parent.inset_axes([0, 1, 1, .05])
     im = cax.imshow([[]], vmin=min(delays), vmax=max(delays), aspect='auto',
                     cmap=cmap)
