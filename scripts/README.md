@@ -26,5 +26,5 @@ Code base of time allocation model project
 ### data
 - saved simulation results for report figures
 
-## Other scripts:
-Mostly try-out and un-structured...
+## misc:
+Mostly try-outs and un-structured scripts...
