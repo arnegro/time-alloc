@@ -2,6 +2,9 @@
 
 Code base of time allocation model project
 
+## example.py
+- example file to outline the basic functionality
+
 ## Modules:
 
 ### model
