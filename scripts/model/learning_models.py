@@ -144,12 +144,11 @@ class PiLearnModelUdelayProb(PiLearnModelUdelay):
     """
     Bayesian learner as described in report in Sec. 2.2, Eq. (9)
     """
-    def __init__(self, *args, U_inv=None, max_certainty=np.inf, **kwargs):
+    def __init__(self, *args, U_inv=None, **kwargs):
         super().__init__(*args, **kwargs)
         n = self.u.shape[0]
         self.M = self.P_est.copy()
         self.U_inv = np.eye(n) *1e-2 if U_inv is None else U_inv
-        self.max_certainty = max_certainty
 
     def simulate(self, *args, u0=None, **kwargs):
         self._previous_u = u0 if u0 is not None else self.u0.copy()
@@ -169,11 +168,7 @@ class PiLearnModelUdelayProb(PiLearnModelUdelay):
         y = y[:,None]
         U_inv = self.U_inv + np.outer(x, x)
         tr = np.linalg.trace(U_inv)
-        if tr > self.max_certainty:
-            corr = tr / self.max_certainty
-        else:
-            corr = 1
-        dM = np.outer(y - self.M @ x, x) @ np.linalg.inv(U_inv) / corr
+        dM = np.outer(y - self.M @ x, x) @ np.linalg.inv(U_inv)
         self.M += dM
         self.U_inv = U_inv
         self._previous_u = self.u.copy()
