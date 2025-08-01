@@ -1,0 +1,1 @@
+scp arnegr@hpc.pik-potsdam.de:~/project/time-alloc/scripts/data/error_comparison_runs4.pickle data/

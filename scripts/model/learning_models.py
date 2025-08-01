@@ -2,6 +2,9 @@ import numpy as np
 from model.model_base import Model
 
 class PiLearnModelBase(Model):
+    """
+    Basic parent class for time allocation model with learning extension
+    """
     def __init__(self, *args, eta=1e-3, P_est=None, g_bias=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.P_est = np.zeros((self.dim, self.dim)) \
@@ -38,6 +41,9 @@ class PiLearnModelBase(Model):
         # return t, *res.swapaxes(0, 1)
 
 class PiLearnModelU(PiLearnModelBase):
+    """
+    This is a model that should be deleted as it is faulty...
+    """
     def step_P_est(self):
         delta_u = self.u - self.u_est
         a = np.clip(self.a, a_min=0, a_max=None)
@@ -45,6 +51,9 @@ class PiLearnModelU(PiLearnModelBase):
         return self.P_est + dP
 
 class PiLearnModelUdelay(PiLearnModelBase):
+    """
+    Basic gradient descent learning as described in report Sec. 2.2, Eq. (8)
+    """
     def __init__(self, *args, delay=5, **kwargs):
         super().__init__(*args, **kwargs)
         self.delay = delay
@@ -72,6 +81,10 @@ class PiLearnModelUdelay(PiLearnModelBase):
         return self.a, self.u, self.u_est
 
 class PiLearnModelDU(PiLearnModelBase):
+    """
+    Continuous limit (delay -> 0) of gradient descent with mean sqared error
+    loss
+    """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.dudt = None
@@ -91,6 +104,9 @@ class PiLearnModelDU(PiLearnModelBase):
         return self.a, self.u, self.u_est
 
 class PiLearnModelUdelayMu(PiLearnModelUdelay):
+    """
+    Gradient descent with u^{>mu}
+    """
     def update_P_est(self):
         delta_u = np.clip(self.u, a_min=self.mu, a_max=None) \
                 - np.clip(self.u_est, a_min=self.mu, a_max=None)
@@ -99,7 +115,9 @@ class PiLearnModelUdelayMu(PiLearnModelUdelay):
         return self.P_est + dP
 
 class PiLearnModelO(PiLearnModelBase):
-    ## TODO: faulty!!
+    """
+    This is a model that should be deleted as it is faulty...
+    """
     def __init__(self, *args, tau=5, **kwargs):
         super().__init__(*args, **kwargs)
         self.o = np.zeros_like(self.u)
@@ -123,6 +141,9 @@ class PiLearnModelO(PiLearnModelBase):
         return self.P_est + dP
 
 class PiLearnModelUdelayProb(PiLearnModelUdelay):
+    """
+    Bayesian learner as described in report in Sec. 2.2, Eq. (9)
+    """
     def __init__(self, *args, U_inv=None, max_certainty=np.inf, **kwargs):
         super().__init__(*args, **kwargs)
         n = self.u.shape[0]
